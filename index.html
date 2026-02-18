@@ -136,6 +136,14 @@
           <div>
             <label>N° Remito (automático desde servidor)</label>
             <input id="numRemito" readonly style="background:#f0f0f0; font-weight:bold; font-size:18px; text-align:center;">
+            <div style="margin-top:10px;">
+              <label style="font-size:13px;">Tipo de remito:</label>
+              <select id="tipoRemito" style="padding:8px; font-size:14px;">
+                <option value="ORIGINAL">ORIGINAL</option>
+                <option value="DUPLICADO">DUPLICADO</option>
+                <option value="TRIPLICADO">TRIPLICADO</option>
+              </select>
+            </div>
             <div class="info-box" id="infoNumeracion" style="margin-top:10px;">
               <span class="server-status online" id="numStatusDot"></span>
               <span id="numStatusText">Esperando servidor...</span>
@@ -253,15 +261,13 @@
 
     <div class="actions">
       <button onclick="validarYPrevisualizar()">PREVISUALIZAR</button>
-      <button onclick="validarYDescargarPDF()">DESCARGAR PDF</button>
-      <button onclick="guardarRemito()" class="btn-success">💾 GUARDAR REMITO</button>
+      <button onclick="validarYDescargarPDF()" class="btn-success">DESCARGAR PDF</button>
     </div>
 
     <!-- BARRA DE ACCIONES PRINCIPALES -->
     <div class="actions-bar">
       <h3>🔧 GESTIÓN DE REMITOS</h3>
       <button onclick="nuevoRemito()" class="btn-success" style="padding:12px 25px;">➕ NUEVO REMITO</button>
-      <button onclick="guardarRemito()" class="btn-success" style="padding:12px 25px;">💾 GUARDAR REMITO</button>
       <button onclick="exportarBackup()" class="btn-warning" style="padding:12px 25px;">📤 EXPORTAR BACKUP</button>
     </div>
 
@@ -272,7 +278,7 @@
     
     <div id="preview" class="tab-content active">
       <div class="preview-header">
-        📄 VISTA PREVIA DEL DOCUMENTO COMPLETO (Original + Duplicado)
+        📄 VISTA PREVIA DEL DOCUMENTO
       </div>
       <div class="preview-unica">
         <iframe id="iframeUnico"></iframe>
@@ -285,10 +291,10 @@
         <ul>
           <li>Los campos marcados con (*) son obligatorios.</li>
           <li>Formato detalle: <strong>Cantidad ; Unidad ; Descripción ; Estado</strong></li>
-          <li>N° de remito se genera automáticamente desde Google Sheets (multiusuario).</li>
-          <li>El PDF contiene ORIGINAL completo primero, luego DUPLICADO completo.</li>
+          <li>N° de remito se genera automáticamente desde Google Sheets.</li>
+          <li><strong>Tipo de remito:</strong> Seleccioná ORIGINAL, DUPLICADO o TRIPLICADO antes de generar.</li>
           <li><strong>Nuevo Remito:</strong> Obtiene el próximo número correlativo del servidor.</li>
-          <li><strong>Guardar Remito:</strong> Guarda en Google Sheets + localStorage (offline).</li>
+          <li><strong>Descargar PDF:</strong> Guarda automáticamente en Google Sheets y descarga el PDF.</li>
           <li><strong>Exportar Backup:</strong> Descarga todos los remitos a archivo JSON.</li>
           <li><strong>Autocompletado:</strong> Escriba 3 letras en "Conductor" o 2 en "Vehículo/Acoplado".</li>
         </ul>
@@ -325,7 +331,7 @@ URL de ejemplo (REEMPLAZAR):
   const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbxxxxxx/dev';
 =============================================================================
 */
-const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbyNDBKzBAo6-y7rey3werFTY1LYFV5bRxgtOd-rYNRu4M41iObR0Uc4CTYJQYpZHwuy3w/exec';
+const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbyHFZFCFmfgGpkFHo8OOxTeu6KvifOrjGJXphv72eamCHFO9ZpSsG_gl7JN6t9RriWq/exec';
 
 // ==========================================================================
 // VARIABLES GLOBALES
@@ -337,6 +343,7 @@ let numeracionSistema = { ultimoNumero: 0, añoActual: new Date().getFullYear(),
 let domiciliosEnEdicion = [];
 let servidorOnline = false;
 let sistemaDatos;
+let tipoDocumento = 'ORIGINAL';
 
 // ==========================================================================
 // VERIFICACIÓN DE CONEXIÓN
@@ -583,13 +590,14 @@ class SistemaDatos {
 // ==========================================================================
 
 async function nuevoRemito() {
-  if (!validarFormulario()) {
-    alert('❌ Complete los campos obligatorios primero');
-    return;
-  }
-  
   await cargarNumeroRemitoServer();
-  mostrarNotificacionExito('✅ Nuevo remito creado: ' + document.getElementById('numRemito').value);
+  
+  const tipo = document.getElementById('tipoRemito')?.value || 'ORIGINAL';
+  const numRemito = document.getElementById('numRemito').value;
+  const numConTipo = tipo === 'ORIGINAL' ? numRemito : `${numRemito}-${tipo}`;
+  
+  document.getElementById('numRemito').value = numConTipo;
+  mostrarNotificacionExito('✅ Nuevo remito: ' + numConTipo);
 }
 
 async function cargarNumeroRemitoServer() {
@@ -1000,9 +1008,7 @@ function generarHTMLCompleto(filas) {
   `;
   
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@media print { .page-break { page-break-after:always; } }</style></head><body>`
-    + paginaHTML('ORIGINAL') 
-    + '<div class="page-break"></div>' 
-    + paginaHTML('DUPLICADO') 
+    + paginaHTML(tipoDocumento) 
     + `</body></html>`;
 }
 
@@ -1011,28 +1017,75 @@ async function validarYDescargarPDF() {
   if (!validarFormulario()) { alert('❌ Complete campos obligatorios'); return; }
   if (!window.jspdf) { alert('❌ Librería no cargada'); return; }
   
+  const numRemito = document.getElementById('numRemito')?.value;
+  if (!numRemito) { alert('❌ Genere un número de remito primero'); return; }
+  
   numeracionSistema.isGenerating = true;
   document.getElementById('loading')?.classList.add('active');
   
+  // Guardar en Apps Script automáticamente
+  await guardarRemitoEnServidor();
+  
   try {
+    tipoDocumento = document.getElementById('tipoRemito')?.value || 'ORIGINAL';
+    
     const filas = document.getElementById('detalle').value.trim().split('\n').filter(l => l.trim());
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
     
-    await generarPaginaPDF(pdf, filas, 'ORIGINAL', true);
-    pdf.addPage();
-    await generarPaginaPDF(pdf, filas, 'DUPLICADO', false);
+    await generarPaginaPDF(pdf, filas, tipoDocumento, true);
     
-    const numRemito = document.getElementById('numRemito')?.value || 'remito';
     pdf.save(`${numRemito}.pdf`);
     
-    mostrarNotificacionExito('PDF generado');
+    mostrarNotificacionExito('✅ Remito guardado y PDF descargado');
     
   } catch (error) {
     alert('❌ Error: ' + error.message);
   } finally {
     document.getElementById('loading')?.classList.remove('active');
     numeracionSistema.isGenerating = false;
+  }
+}
+
+async function guardarRemitoEnServidor() {
+  const remito = {
+    numRemito: document.getElementById('numRemito')?.value,
+    fecha: document.getElementById('fecha')?.value,
+    tipo: document.getElementById('tipoRemito')?.value || 'ORIGINAL',
+    origen: {
+      razonSocial: document.getElementById('origenRS')?.value,
+      domicilio: document.getElementById('origenDom')?.value,
+      cuit: document.getElementById('origenCUIT')?.value
+    },
+    destino: {
+      razonSocial: document.getElementById('destinoRS')?.value,
+      domicilio: document.getElementById('destinoDom')?.value
+    },
+    transporte: {
+      conductor: document.getElementById('conductor')?.value,
+      dni: document.getElementById('dni')?.value,
+      vehiculo: document.getElementById('vehiculo')?.value,
+      acoplado: document.getElementById('acoplado')?.value
+    },
+    detalle: document.getElementById('detalle')?.value,
+    receptor: document.getElementById('nombreReceptor')?.value,
+    fechaFirma: document.getElementById('fechaFirma')?.value,
+    usuario: sistemaDatos?.datos?.usuario || 'DEFAULT',
+    timestamp: Date.now()
+  };
+  
+  try {
+    const response = await fetch(`${GAS_BASE_URL}?action=saveRemito`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(remito)
+    });
+    
+    if (response.ok) {
+      console.log('Remito guardado en servidor');
+    }
+  } catch (error) {
+    console.error('Error guardando en servidor:', error);
   }
 }
 
