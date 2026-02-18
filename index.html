@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Remito Interno</title>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f0f4f8; padding: 20px; margin: 0; }
+    .container { max-width: 1150px; margin: auto; background: white; border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.15); overflow: hidden; }
+    .header { background: #1a3c6e; color: white; padding: 25px; text-align: center; font-size: 24px; font-weight: bold; }
+    .form { padding: 35px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    label { font-weight: 600; color: #333; display: block; margin-bottom: 8px; }
+    input, textarea, select { width: 100%; padding: 14px; border: 1px solid #ddd; border-radius: 12px; font-size: 15px; }
+    .full { grid-column: 1 / -1; }
+    button { background: #1a3c6e; color: white; padding: 16px 40px; border: none; border-radius: 12px; cursor: pointer; font-size: 18px; margin: 15px 10px; }
+    button:hover { background: #0f2a56; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    
+    .btn-success { background: #4CAF50; }
+    .btn-success:hover { background: #45a049; }
+    .btn-warning { background: #ff9800; }
+    .btn-warning:hover { background: #f57c00; }
+    .btn-danger { background: #f44336; }
+    .btn-danger:hover { background: #d32f2f; }
+    .btn-info { background: #2196f3; }
+    .btn-info:hover { background: #1976d2; }
+    
+    #logoPreview { max-height: 100px; margin: 15px 0; border: 2px dashed #999; border-radius: 12px; padding: 10px; background: #fafafa; display: none; }
+    .actions { text-align: center; margin: 50px 0; }
+    .error { border: 2px solid #ff4444 !important; }
+    .error-message { color: #ff4444; font-size: 14px; margin-top: 5px; display: none; }
+    .success-notification { position: fixed; top: 20px; right: 20px; background: #4CAF50; color: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); display: none; z-index: 1000; }
+    
+    .section-title { font-weight: bold; color: #1a3c6e; margin-top: 20px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid #1a3c6e; }
+    .suggestions { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #1a3c6e; }
+    
+    .preview-unica { margin-top: 20px; border: 1px solid #ddd; border-radius: 8px; overflow: auto; background: white; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-height: 800px; }
+    .preview-unica iframe { width: 100%; height: 800px; border: none; }
+    .preview-header { background: #1a3c6e; color: white; padding: 10px 15px; font-weight: bold; text-align: center; border-radius: 8px 8px 0 0; }
+    
+    .tab-container { margin-bottom: 20px; }
+    .tab-button { background: #e0e0e0; border: none; padding: 10px 20px; cursor: pointer; margin-right: 5px; border-radius: 5px 5px 0 0; }
+    .tab-button.active { background: #1a3c6e; color: white; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    .numero-control { background: #f0f0f0; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+    .uppercase-hint { font-size: 12px; color: #666; margin-top: 5px; font-style: italic; }
+    .info-box { background: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px; padding: 10px; margin: 10px 0; font-size: 14px; color: #1565c0; }
+    
+    .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 2000; }
+    .loading-overlay.active { display: flex; }
+    .loading-content { background: white; padding: 30px; border-radius: 12px; text-align: center; }
+    .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #1a3c6e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    
+    .debug-info { background: #fff3cd; border: 1px solid #ffc107; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 13px; }
+    .contador-filas { font-weight: bold; margin-top: 5px; padding: 8px; border-radius: 4px; }
+    .contador-filas.normal { background: #e3f2fd; color: #1565c0; }
+    .contador-filas.warning { background: #fff3cd; color: #856404; }
+    .contador-filas.danger { background: #f8d7da; color: #721c24; }
+    
+    .autocomplete-wrapper { position: relative; width: 100%; }
+    .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #1a3c6e; border-top: none; border-radius: 0 0 12px 12px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: none; }
+    .autocomplete-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #eee; transition: background 0.2s; font-size: 14px; }
+    .autocomplete-item:hover, .autocomplete-item.selected { background: #e3f2fd; }
+    .autocomplete-item strong { color: #1a3c6e; }
+    .autocomplete-item small { color: #666; display: block; margin-top: 2px; }
+    .autocomplete-highlight { background: #fff176; font-weight: bold; }
+    
+    .server-status { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+    .server-status.online { background: #4caf50; }
+    .server-status.offline { background: #f44336; }
+    .server-status.checking { background: #ff9800; }
+    
+    .usuario-activo { background: #e8f5e9; border: 1px solid #4caf50; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; text-align: center; }
+    
+    .modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+    .modal-content { background-color: white; margin: 3% auto; padding: 20px; border-radius: 12px; width: 90%; max-width: 900px; max-height: 85vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #1a3c6e; }
+    .close-modal { font-size: 28px; font-weight: bold; cursor: pointer; color: #aaa; }
+    .close-modal:hover { color: #000; }
+    
+    .empresa-item { padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; }
+    .empresa-actions { display: flex; gap: 5px; margin-top: 10px; }
+    .empresa-actions button { padding: 8px 15px; font-size: 14px; margin: 0; }
+    
+    .domicilio-selector { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+    
+    .domicilios-container { margin-top: 10px; }
+    .domicilio-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .domicilio-row input { flex: 1; font-size: 13px; padding: 10px; }
+    .domicilio-row button { padding: 8px 12px; font-size: 12px; margin: 0; min-width: auto; }
+    .btn-remove-dom { background: #f44336 !important; }
+    .btn-move-dom { background: #2196f3 !important; padding: 8px 10px !important; }
+    .btn-add-dom { background: #4CAF50 !important; margin-top: 10px; width: 100%; }
+    
+    .auto-filled { background-color: #e8f5e9 !important; border-color: #4caf50 !important; }
+    
+    #templateContainer { position: absolute; left: -9999px; top: 0; width: 210mm; height: auto !important; overflow: visible !important; display: block !important; }
+    #template { width: 210mm; min-height: 297mm; padding: 15mm 18mm; background: white; font-family: Arial; font-size: 11pt; box-sizing: border-box; display: flex; flex-direction: column; }
+    .firma-fija { position: relative; margin-top: auto; padding-top: 30px; width: 100%; }
+
+    .actions-bar { background: #f5f5f5; padding: 20px; margin-top: 20px; border-radius: 12px; text-align: center; }
+    .actions-bar h3 { margin: 0 0 15px 0; color: #1a3c6e; }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+  <div class="header">REMITO INTERNO</div>
+  
+  <div id="usuarioActivoDisplay" class="usuario-activo" style="display:none;"></div>
+  
+  <div id="serverStatus" style="text-align:center; padding:5px; font-size:12px; color:#666;">
+    <span class="server-status checking" id="statusDot"></span>
+    <span id="statusText">Verificando conexión...</span>
+  </div>
+  
+  <div class="form">
+    <div class="grid">
+      <div class="full section-title">CONFIGURACIÓN DE USUARIO</div>
+      <div class="full">
+        <label>Usuario/Oficina (opcional - se guarda automáticamente)</label>
+        <input id="usuarioConfig" placeholder="Ej: OFICINA_CENTRAL, SUCURSAL_GODOY_CRUZ">
+        <button onclick="guardarConfigUsuario()" style="padding:10px 20px; font-size:14px; margin-top:10px;">Guardar Usuario</button>
+      </div>
+
+      <div class="numero-control">
+        <div class="grid">
+          <div>
+            <label>N° Remito (automático desde servidor)</label>
+            <input id="numRemito" readonly style="background:#f0f0f0; font-weight:bold; font-size:18px; text-align:center;">
+            <div class="info-box" id="infoNumeracion" style="margin-top:10px;">
+              <span class="server-status online" id="numStatusDot"></span>
+              <span id="numStatusText">Esperando servidor...</span>
+            </div>
+          </div>
+          <div>
+            <label>Forzar número (opcional)</label>
+            <input id="forceNumber" placeholder="Solo si necesita cambiar el número">
+            <div class="uppercase-hint">El texto se convertirá automáticamente a mayúsculas</div>
+          </div>
+        </div>
+        <div style="margin-top:15px; text-align:center;">
+          <button onclick="nuevoRemito()" class="btn-success" style="padding:10px 20px; font-size:14px;">➕ NUEVO REMITO</button>
+          <button onclick="cargarNumeroRemitoServer()" class="btn-info" style="padding:10px 20px; font-size:14px;">🔄 ACTUALIZAR NÚMERO</button>
+        </div>
+      </div>
+      
+      <div><label>Fecha</label><input type="date" id="fecha" required></div>
+
+      <div class="full">
+        <label>Logo (opcional - carga manual)</label>
+        <input type="file" id="logoInput" accept="image/*">
+        <img id="logoPreview" src="" alt="Logo" crossorigin="anonymous">
+      </div>
+
+      <div class="full section-title">DATOS DE ORIGEN Y DESTINO</div>
+      
+      <div>
+        <label>Origen - Razón Social</label>
+        <input id="origenRS" value="HORMISERV SRL" required list="listaOrigenRS">
+        <datalist id="listaOrigenRS"></datalist>
+      </div>
+      
+      <div>
+        <label>Origen - Seleccionar Domicilio</label>
+        <div class="domicilio-selector">
+          <select id="origenDomSelect" onchange="document.getElementById('origenDom').value = this.value">
+            <option value="">Cargar domicilios...</option>
+          </select>
+          <input type="text" id="origenDom" value="PRIMITIVO DE LA RETA 540, M5501, GODOY CRUZ, MENDOZA" required>
+        </div>
+      </div>
+      
+      <div><label>Origen - CUIT</label><input id="origenCUIT" value="30-68164173-0"></div>
+      
+      <div>
+        <label>Destino - Razón Social</label>
+        <input id="destinoRS" value="HORMISERV SRL" required list="listaDestinoRS">
+        <datalist id="listaDestinoRS"></datalist>
+      </div>
+      
+      <div>
+        <label>Destino - Seleccionar Domicilio</label>
+        <div class="domicilio-selector">
+          <select id="destinoDomSelect" onchange="document.getElementById('destinoDom').value = this.value">
+            <option value="">Cargar domicilios...</option>
+          </select>
+          <input type="text" id="destinoDom" value="BOLÍVAR NORTE 1601, PARQUE INDUSTRIAL, CHIMBAS, SAN JUAN CP: 5413" required>
+        </div>
+      </div>
+
+      <div class="full section-title">DATOS DEL TRANSPORTE</div>
+      
+      <div class="autocomplete-wrapper">
+        <label>Conductor (escriba 3 letras para buscar)</label>
+        <input id="conductor" value="SANTIAGO MUÑOZ" required autocomplete="off">
+        <div id="conductorList" class="autocomplete-list"></div>
+      </div>
+      
+      <div><label>DNI</label><input id="dni" value="33.765.886" required></div>
+      
+      <div class="autocomplete-wrapper">
+        <label>Vehículo (escriba 2 letras para buscar)</label>
+        <input id="vehiculo" value="AF878MF" required autocomplete="off">
+        <div id="vehiculoList" class="autocomplete-list"></div>
+      </div>
+      
+      <div class="autocomplete-wrapper">
+        <label>Acoplado (escriba 2 letras para buscar)</label>
+        <input id="acoplado" value="AF512IW" autocomplete="off">
+        <div id="acopladoList" class="autocomplete-list"></div>
+      </div>
+
+      <div class="full section-title">DETALLE DE BIENES</div>
+      <div class="full">
+        <label>Detalle de bienes → usar ; como separador</label>
+        <textarea id="detalle" rows="8" required>12 ; M³ ; HORMIGÓN ELABORADO H30 ; BUENO
+1 ; UNIDAD ; BOMBA PLUMA 32M ; OPERATIVA
+3 ; UNIDADES ; ANDAMIOS TUBULARES ; EXCELENTE</textarea>
+        <div id="detalleError" class="error-message">Formato incorrecto. Use: Cantidad ; Unidad ; Descripción ; Estado</div>
+        <div class="uppercase-hint">El texto se convertirá automáticamente a mayúsculas</div>
+        <div class="debug-info">
+          <strong>📊 LÍMITES DE PAGINACIÓN:</strong><br>
+          • Página 1: <strong>4 registros</strong> máximo + datos fijos<br>
+          • Páginas 2+: <strong>14 registros</strong> máximo + encabezado reducido<br>
+          • <strong>⚠️ SEGUNDA HOJA: Se genera automáticamente con 5 o más registros</strong><br>
+          • Leyendas y firmas: <strong>EN TODAS LAS PÁGINAS</strong>
+        </div>
+        <div class="contador-filas normal" id="contadorFilasInfo">
+          Registros actuales: <span id="contadorFilas">3</span> | Páginas necesarias: 1
+        </div>
+      </div>
+      
+      <div class="full section-title">DATOS DE FIRMA</div>
+      <div>
+        <label>Nombre completo del conductor <small style="color:#666; font-weight:normal;">(se completa automáticamente)</small></label>
+        <input id="nombreConductor" value="SANTIAGO MUÑOZ" class="auto-filled">
+      </div>
+      <div><label>Nombre completo del receptor</label><input id="nombreReceptor" value=""></div>
+      <div>
+        <label>Fecha de firma <small style="color:#666; font-weight:normal;">(se completa automáticamente con la fecha del remito)</small></label>
+        <input type="date" id="fechaFirma" class="auto-filled">
+      </div>
+    </div>
+
+    <div class="actions">
+      <button onclick="validarYPrevisualizar()">PREVISUALIZAR</button>
+      <button onclick="validarYDescargarPDF()">DESCARGAR PDF</button>
+      <button onclick="guardarRemito()" class="btn-success">💾 GUARDAR REMITO</button>
+    </div>
+
+    <!-- BARRA DE ACCIONES PRINCIPALES -->
+    <div class="actions-bar">
+      <h3>🔧 GESTIÓN DE REMITOS</h3>
+      <button onclick="nuevoRemito()" class="btn-success" style="padding:12px 25px;">➕ NUEVO REMITO</button>
+      <button onclick="guardarRemito()" class="btn-success" style="padding:12px 25px;">💾 GUARDAR REMITO</button>
+      <button onclick="exportarBackup()" class="btn-warning" style="padding:12px 25px;">📤 EXPORTAR BACKUP</button>
+    </div>
+
+    <div class="tab-container">
+      <button class="tab-button active" onclick="showTab('preview')">Vista Previa</button>
+      <button class="tab-button" onclick="showTab('suggestions')">Sugerencias</button>
+    </div>
+    
+    <div id="preview" class="tab-content active">
+      <div class="preview-header">
+        📄 VISTA PREVIA DEL DOCUMENTO COMPLETO (Original + Duplicado)
+      </div>
+      <div class="preview-unica">
+        <iframe id="iframeUnico"></iframe>
+      </div>
+    </div>
+    
+    <div id="suggestions" class="tab-content">
+      <div class="suggestions">
+        <h3>Sugerencias de uso:</h3>
+        <ul>
+          <li>Los campos marcados con (*) son obligatorios.</li>
+          <li>Formato detalle: <strong>Cantidad ; Unidad ; Descripción ; Estado</strong></li>
+          <li>N° de remito se genera automáticamente desde Google Sheets (multiusuario).</li>
+          <li>El PDF contiene ORIGINAL completo primero, luego DUPLICADO completo.</li>
+          <li><strong>Nuevo Remito:</strong> Obtiene el próximo número correlativo del servidor.</li>
+          <li><strong>Guardar Remito:</strong> Guarda en Google Sheets + localStorage (offline).</li>
+          <li><strong>Exportar Backup:</strong> Descarga todos los remitos a archivo JSON.</li>
+          <li><strong>Autocompletado:</strong> Escriba 3 letras en "Conductor" o 2 en "Vehículo/Acoplado".</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="successNotification" class="success-notification"></div>
+
+<div id="loading" class="loading-overlay">
+  <div class="loading-content">
+    <div class="spinner"></div>
+    <div>Procesando...</div>
+    <div id="loadingStatus"></div>
+  </div>
+</div>
+
+<script>
+/* 
+=============================================================================
+CONFIGURACIÓN - GOOGLE APPS SCRIPT
+=============================================================================
+REEMPLAZAR ESTA URL CON TU PROPIA URL DE GOOGLE APPS SCRIPT
+
+Cómo obtener la URL:
+1. Crear Google Sheet con hojas "Numeracion" y "Remitos"
+2. Extensiones > Apps Script
+3. Crear archivo Code.gs con las funciones del instructivo
+4. Publicar > Deploy as web app
+5. Copiar la URL aquí
+
+URL de ejemplo (REEMPLAZAR):
+  const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbxxxxxx/dev';
+=============================================================================
+*/
+const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbzdP6Jow0hAH5b8DdtZfdXIVQkop4sFvfKX85cgU_mCqcqttPWcnzpJW76ysutwg99H3w/exec';
+
+// ==========================================================================
+// VARIABLES GLOBALES
+// ==========================================================================
+const FILAS_PAGINA_1 = 4;
+const FILAS_PAGINA_SIGUIENTE = 14;
+let logoURL = "";
+let numeracionSistema = { ultimoNumero: 0, añoActual: new Date().getFullYear(), isGenerating: false };
+let domiciliosEnEdicion = [];
+let servidorOnline = false;
+let sistemaDatos;
+
+// ==========================================================================
+// VERIFICACIÓN DE CONEXIÓN
+// ==========================================================================
+async function verificarServidor() {
+  try {
+    const response = await fetch(`${GAS_BASE_URL}?action=getNextRemito&usuario=TEST`, { 
+      method: 'GET',
+      redirect: 'follow'
+    });
+    servidorOnline = response.ok || response.status === 302;
+    actualizarIndicadorServidor();
+  } catch (e) {
+    console.log('Servidor offline:', e.message);
+    servidorOnline = false;
+    actualizarIndicadorServidor();
+  }
+}
+
+function actualizarIndicadorServidor() {
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  const numDot = document.getElementById('numStatusDot');
+  const numText = document.getElementById('numStatusText');
+  
+  if (dot) dot.className = 'server-status ' + (servidorOnline ? 'online' : 'offline');
+  if (text) text.textContent = servidorOnline ? 'Servidor online (Google Sheets)' : 'Servidor offline - modo local';
+  if (numDot) numDot.className = 'server-status ' + (servidorOnline ? 'online' : 'offline');
+  if (numText) numText.textContent = servidorOnline ? 'Conectado a Google Sheets' : 'Modo offline - numeración local';
+}
+
+// ==========================================================================
+// CLASE SISTEMA DE DATOS (LOCALSTORAGE)
+// ==========================================================================
+class SistemaDatos {
+  constructor() {
+    this.storageKeys = {
+      empresas: 'empresas_hormiserv_v4',
+      usuario: 'usuario_activo_hormiserv',
+      conductores: 'conductores_hormiserv_v1',
+      vehiculos: 'vehiculos_hormiserv_v1',
+      remitos: 'remitos_locales_hormiserv'
+    };
+    this.datos = { empresas: [], usuario: '', conductores: [], vehiculos: [], remitosLocales: [] };
+    this.cargarTodosLosDatos();
+    this.inicializarEventos();
+    this.inicializarAutocompletado();
+  }
+  
+  cargarTodosLosDatos() {
+    try { this.datos.usuario = localStorage.getItem(this.storageKeys.usuario) || ''; } catch(e) {}
+    
+    try {
+      const emp = JSON.parse(localStorage.getItem(this.storageKeys.empresas)) || [];
+      this.datos.empresas = emp.map(e => Array.isArray(e.domicilios) ? e : {...e, domicilio: e.domicilio || ''});
+    } catch(e) { this.datos.empresas = []; }
+    
+    try {
+      const cond = JSON.parse(localStorage.getItem(this.storageKeys.conductores));
+      this.datos.conductores = (cond && cond.length > 0) ? cond : this.getConductoresDefault();
+    } catch(e) { this.datos.conductores = this.getConductoresDefault(); }
+    
+    try {
+      const veh = JSON.parse(localStorage.getItem(this.storageKeys.vehiculos));
+      this.datos.vehiculos = (veh && veh.length > 0) ? veh : this.getVehiculosDefault();
+    } catch(e) { this.datos.vehiculos = this.getVehiculosDefault(); }
+    
+    try {
+      this.datos.remitosLocales = JSON.parse(localStorage.getItem(this.storageKeys.remitos)) || [];
+    } catch(e) { this.datos.remitosLocales = []; }
+    
+    this.mostrarUsuarioActivo();
+    this.generarDatalists();
+  }
+  
+  getConductoresDefault() { return [{nombre:'SANTIAGO MUÑOZ', dni:'33.765.886', timestamp:Date.now()}]; }
+  getVehiculosDefault() { return [{patente:'AF878MF', tipo:'Camión', timestamp:Date.now()}, {patente:'AF512IW', tipo:'Acoplado', timestamp:Date.now()}]; }
+  
+  guardarEmpresas() { localStorage.setItem(this.storageKeys.empresas, JSON.stringify(this.datos.empresas)); }
+  guardarUsuario() { localStorage.setItem(this.storageKeys.usuario, this.datos.usuario); }
+  guardarConductores() { localStorage.setItem(this.storageKeys.conductores, JSON.stringify(this.datos.conductores)); }
+  guardarVehiculos() { localStorage.setItem(this.storageKeys.vehiculos, JSON.stringify(this.datos.vehiculos)); }
+  guardarRemitosLocales() { localStorage.setItem(this.storageKeys.remitos, JSON.stringify(this.datos.remitosLocales)); }
+  
+  setUsuario(usuario) {
+    this.datos.usuario = usuario.trim();
+    this.guardarUsuario();
+    this.mostrarUsuarioActivo();
+  }
+  
+  mostrarUsuarioActivo() {
+    const display = document.getElementById('usuarioActivoDisplay');
+    const input = document.getElementById('usuarioConfig');
+    if (this.datos.usuario) {
+      if (display) { display.textContent = `USUARIO ACTIVO: ${this.datos.usuario}`; display.style.display = 'block'; }
+      if (input) input.value = this.datos.usuario;
+    } else {
+      if (display) display.style.display = 'none';
+      if (input) input.value = '';
+    }
+  }
+  
+  inicializarAutocompletado() {
+    this.setupAutocomplete('conductor', 'conductorList', 3, 'conductor');
+    this.setupAutocomplete('vehiculo', 'vehiculoList', 2, 'vehiculo');
+    this.setupAutocomplete('acoplado', 'acopladoList', 2, 'acoplado');
+  }
+  
+  setupAutocomplete(inputId, listId, minChars, tipo) {
+    const input = document.getElementById(inputId);
+    const list = document.getElementById(listId);
+    if (!input || !list) return;
+    
+    let selectedIndex = -1;
+    input.addEventListener('input', (e) => {
+      const query = e.target.value;
+      selectedIndex = -1;
+      if (query.length >= minChars) {
+        let resultados = tipo === 'conductor' ? this.buscarConductores(query) : this.buscarVehiculos(query, tipo === 'acoplado' ? 'Acoplado' : 'todos');
+        this.mostrarLista(resultados, list, input, tipo);
+      } else {
+        list.style.display = 'none';
+      }
+    });
+    
+    input.addEventListener('keydown', (e) => {
+      const divs = list.querySelectorAll('.autocomplete-item');
+      if (e.key === 'ArrowDown') { e.preventDefault(); selectedIndex = Math.min(selectedIndex + 1, divs.length - 1); this.updateSelection(divs, selectedIndex); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); selectedIndex = Math.max(selectedIndex - 1, -1); this.updateSelection(divs, selectedIndex); }
+      else if (e.key === 'Enter') { e.preventDefault(); if (selectedIndex >= 0 && divs[selectedIndex]) divs[selectedIndex].click(); }
+      else if (e.key === 'Escape') { list.style.display = 'none'; selectedIndex = -1; }
+    });
+    
+    document.addEventListener('click', (e) => { if (!input.contains(e.target) && !list.contains(e.target)) list.style.display = 'none'; });
+  }
+  
+  mostrarLista(resultados, list, input, tipo) {
+    if (resultados.length === 0) { list.style.display = 'none'; return; }
+    const query = input.value.toUpperCase();
+    list.innerHTML = '';
+    resultados.forEach((item) => {
+      const div = document.createElement('div');
+      div.className = 'autocomplete-item';
+      if (tipo === 'conductor') {
+        div.innerHTML = `<strong>${this.resaltarTexto(item.nombre, query)}</strong><small>DNI: ${item.dni}</small>`;
+        div.addEventListener('click', () => {
+          input.value = item.nombre;
+          document.getElementById('dni').value = item.dni;
+          document.getElementById('nombreConductor').value = item.nombre;
+          list.style.display = 'none';
+          this.agregarConductor(item.nombre, item.dni);
+        });
+      } else {
+        div.innerHTML = `<strong>${this.resaltarTexto(item.patente, query)}</strong><small>${item.tipo}</small>`;
+        div.addEventListener('click', () => { input.value = item.patente; list.style.display = 'none'; this.agregarVehiculo(item.patente, item.tipo); });
+      }
+      list.appendChild(div);
+    });
+    list.style.display = 'block';
+  }
+  
+  resaltarTexto(texto, query) {
+    if (!query) return texto;
+    return texto.replace(new RegExp(`(${query})`, 'gi'), '<span class="autocomplete-highlight">$1</span>');
+  }
+  
+  updateSelection(divs, index) {
+    divs.forEach((div, i) => { if (i === index) div.classList.add('selected'); else div.classList.remove('selected'); });
+  }
+  
+  buscarConductores(query) {
+    if (!query || query.length < 3) return [];
+    return this.datos.conductores.filter(c => c.nombre.includes(query.toUpperCase())).slice(0, 5);
+  }
+  
+  buscarVehiculos(query, tipoFiltro) {
+    if (!query || query.length < 2) return [];
+    return this.datos.vehiculos.filter(v => v.patente.includes(query.toUpperCase()) && (tipoFiltro === 'todos' || v.tipo === tipoFiltro)).slice(0, 5);
+  }
+  
+  agregarConductor(nombre, dni) {
+    if (!nombre || !nombre.trim()) return false;
+    const idx = this.datos.conductores.findIndex(c => c.nombre.toUpperCase() === nombre.toUpperCase());
+    const conductor = { nombre: nombre.trim().toUpperCase(), dni: dni ? dni.trim().toUpperCase() : '', timestamp: Date.now() };
+    if (idx !== -1) this.datos.conductores[idx] = conductor; else this.datos.conductores.unshift(conductor);
+    if (this.datos.conductores.length > 30) this.datos.conductores = this.datos.conductores.slice(0, 30);
+    this.guardarConductores();
+    return true;
+  }
+  
+  agregarVehiculo(patente, tipo) {
+    if (!patente || !patente.trim()) return false;
+    const idx = this.datos.vehiculos.findIndex(v => v.patente.toUpperCase() === patente.toUpperCase());
+    const vehiculo = { patente: patente.trim().toUpperCase(), tipo: tipo, timestamp: Date.now() };
+    if (idx !== -1) this.datos.vehiculos[idx] = vehiculo; else this.datos.vehiculos.unshift(vehiculo);
+    if (this.datos.vehiculos.length > 30) this.datos.vehiculos = this.datos.vehiculos.slice(0, 30);
+    this.guardarVehiculos();
+    return true;
+  }
+  
+  generarDatalists() {
+    const origenDL = document.getElementById('listaOrigenRS');
+    const destinoDL = document.getElementById('listaDestinoRS');
+    if (!origenDL || !destinoDL) return;
+    const opciones = [...new Set(this.datos.empresas.map(e => e.razonSocial))];
+    const html = opciones.map(val => `<option value="${val}">`).join('');
+    origenDL.innerHTML = html;
+    destinoDL.innerHTML = html;
+  }
+  
+  inicializarEventos() {
+    document.getElementById('origenRS')?.addEventListener('blur', () => this.actualizarSelectorsDomicilio('origen'));
+    document.getElementById('destinoRS')?.addEventListener('blur', () => this.actualizarSelectorsDomicilio('destino'));
+  }
+  
+  actualizarSelectorsDomicilio(origenDestino) {
+    const rsInput = document.getElementById(`${origenDestino}RS`);
+    const select = document.getElementById(`${origenDestino}DomSelect`);
+    const input = document.getElementById(`${origenDestino}Dom`);
+    if (!rsInput || !select || !input) return;
+    
+    const empresa = this.datos.empresas.find(e => e.razonSocial.toUpperCase() === rsInput.value.toUpperCase());
+    select.innerHTML = '<option value="">Seleccionar domicilio...</option>';
+    
+    if (empresa && empresa.domicilios && empresa.domicilios.length > 0) {
+      empresa.domicilios.forEach((dom, index) => {
+        if (dom.trim()) {
+          const option = document.createElement('option');
+          option.value = dom;
+          option.textContent = `${index + 1}: ${dom.substring(0, 60)}${dom.length > 60 ? '...' : ''}`;
+          select.appendChild(option);
+        }
+      });
+      if (!input.value && empresa.domicilios[0]) input.value = empresa.domicilios[0];
+    }
+  }
+}
+
+// ==========================================================================
+// NÚMERACIÓN Y REMITOS VIA GOOGLE APPS SCRIPT
+// ==========================================================================
+
+async function nuevoRemito() {
+  if (!validarFormulario()) {
+    alert('❌ Complete los campos obligatorios primero');
+    return;
+  }
+  
+  await cargarNumeroRemitoServer();
+  mostrarNotificacionExito('✅ Nuevo remito creado: ' + document.getElementById('numRemito').value);
+}
+
+async function cargarNumeroRemitoServer() {
+  const usuario = sistemaDatos?.datos?.usuario || 'DEFAULT';
+  const forceNumber = document.getElementById('forceNumber')?.value.trim();
+  
+  if (forceNumber) {
+    document.getElementById('numRemito').value = forceNumber.toUpperCase();
+    return;
+  }
+  
+  try {
+    const url = `${GAS_BASE_URL}?action=getNextRemito&usuario=${encodeURIComponent(usuario)}`;
+    const response = await fetch(url, { method: 'GET', redirect: 'follow' });
+    
+    if (!response.ok) throw new Error('Error servidor');
+    
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch(e) {
+      const match = text.match(/\{.*\}/);
+      if (match) data = JSON.parse(match[0]);
+      else throw new Error('Respuesta inválida');
+    }
+    
+    document.getElementById('numRemito').value = data.numero;
+    numeracionSistema.ultimoNumero = data.valor;
+    servidorOnline = true;
+  } catch (error) {
+    console.error('Error numeración server:', error);
+    servidorOnline = false;
+    cargarNumeroRemitoLocal();
+  }
+  
+  actualizarIndicadorServidor();
+  
+  const hoy = new Date().toISOString().split('T')[0];
+  document.getElementById('fecha').value = hoy;
+  actualizarFechaFirma();
+}
+
+function cargarNumeroRemitoLocal() {
+  const usuario = sistemaDatos?.datos?.usuario || 'DEFAULT';
+  const año = new Date().getFullYear();
+  const prefijo = usuario.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 6);
+  const key = `ultimoRemito_${año}_${prefijo}`;
+  
+  let ultimo = localStorage.getItem(key);
+  let numero = ultimo ? parseInt(ultimo) : 0;
+  numero++;
+  
+  const formateado = `RI${prefijo ? '_' + prefijo : ''}-${año}-${String(numero).padStart(5, '0')}`;
+  document.getElementById('numRemito').value = formateado;
+  numeracionSistema.ultimoNumero = numero;
+  
+  localStorage.setItem(key, numero);
+  mostrarNotificacionExito('⚠️ Modo offline - numeración local');
+}
+
+// ==========================================================================
+// GUARDAR REMITO
+// ==========================================================================
+
+async function guardarRemito() {
+  if (!validarFormulario()) {
+    alert('❌ Faltan datos obligatorios');
+    return;
+  }
+  
+  const remito = {
+    numRemito: document.getElementById('numRemito')?.value,
+    fecha: document.getElementById('fecha')?.value,
+    origen: {
+      razonSocial: document.getElementById('origenRS')?.value,
+      domicilio: document.getElementById('origenDom')?.value,
+      cuit: document.getElementById('origenCUIT')?.value
+    },
+    destino: {
+      razonSocial: document.getElementById('destinoRS')?.value,
+      domicilio: document.getElementById('destinoDom')?.value
+    },
+    transporte: {
+      conductor: document.getElementById('conductor')?.value,
+      dni: document.getElementById('dni')?.value,
+      vehiculo: document.getElementById('vehiculo')?.value,
+      acoplado: document.getElementById('acoplado')?.value
+    },
+    detalle: document.getElementById('detalle')?.value,
+    receptor: document.getElementById('nombreReceptor')?.value,
+    fechaFirma: document.getElementById('fechaFirma')?.value,
+    usuario: sistemaDatos?.datos?.usuario || 'DEFAULT',
+    timestamp: Date.now(),
+    sincronizado: false
+  };
+  
+  sistemaDatos.datos.remitosLocales.push(remito);
+  sistemaDatos.guardarRemitosLocales();
+  
+  let guardadoEnServidor = false;
+  if (servidorOnline) {
+    try {
+      const response = await fetch(`${GAS_BASE_URL}?action=saveRemito`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(remito)
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        remito.sincronizado = true;
+        remito.id = result.id || remito.numRemito;
+        guardadoEnServidor = true;
+        
+        const idx = sistemaDatos.datos.remitosLocales.findIndex(r => r.timestamp === remito.timestamp);
+        if (idx !== -1) sistemaDatos.datos.remitosLocales[idx] = remito;
+        sistemaDatos.guardarRemitosLocales();
+      }
+    } catch (error) {
+      console.error('Error guardando en servidor:', error);
+    }
+  }
+  
+  if (guardadoEnServidor) {
+    alert(`✅ Remito guardado en servidor y local\nNúmero: ${remito.numRemito}`);
+  } else {
+    alert(`✅ Remito guardado LOCALMENTE (sin conexión)\nNúmero: ${remito.numRemito}\n\nSe sincronizará cuando haya conexión.`);
+  }
+}
+
+// ==========================================================================
+// EXPORTAR BACKUP
+// ==========================================================================
+
+async function exportarBackup() {
+  let todosRemitos = [];
+  
+  if (servidorOnline) {
+    try {
+      const response = await fetch(`${GAS_BASE_URL}?action=getAllRemitos`, { 
+        method: 'GET', 
+        redirect: 'follow' 
+      });
+      
+      if (response.ok) {
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch(e) {
+          const match = text.match(/\{.*\}/);
+          if (match) data = JSON.parse(match[0]);
+        }
+        
+        if (data && data.remitos) {
+          todosRemitos = data.remitos;
+        }
+      }
+    } catch (error) {
+      console.error('Error obteniendo remitos del servidor:', error);
+    }
+  }
+  
+  const localesNoSync = sistemaDatos.datos.remitosLocales.filter(r => !r.sincronizado);
+  todosRemitos = [...todosRemitos, ...localesNoSync];
+  
+  const blob = new Blob([JSON.stringify({
+    exportDate: new Date().toISOString(),
+    totalRemitos: todosRemitos.length,
+    remitos: todosRemitos
+  }, null, 2)], { type: 'application/json' });
+  
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `backup_remitos_${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  mostrarNotificacionExito(`✅ Backup exportado: ${todosRemitos.length} remitos`);
+}
+
+// ==========================================================================
+// UTILIDADES
+// ==========================================================================
+
+function validarFormulario() {
+  let isValid = true;
+  document.querySelectorAll('[required]').forEach(field => {
+    if (!field.value.trim()) { field.classList.add('error'); isValid = false; }
+    else { field.classList.remove('error'); }
+  });
+  
+  const detalle = document.getElementById('detalle')?.value || '';
+  const lineas = detalle.split('\n').filter(l => l.trim());
+  let formatoCorrecto = true;
+  lineas.forEach(linea => { if (linea.split(';').length < 4 && linea.trim()) formatoCorrecto = false; });
+  
+  if (!formatoCorrecto) {
+    document.getElementById('detalleError').style.display = 'block';
+    document.getElementById('detalle').classList.add('error');
+    isValid = false;
+  } else {
+    document.getElementById('detalleError').style.display = 'none';
+    document.getElementById('detalle').classList.remove('error');
+  }
+  
+  return isValid;
+}
+
+function mostrarNotificacionExito(mensaje) {
+  const notif = document.getElementById('successNotification');
+  if (notif) { notif.textContent = mensaje; notif.style.display = 'block'; setTimeout(() => notif.style.display = 'none', 3000); }
+}
+
+function showTab(tabName) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabName)?.classList.add('active');
+  if (event?.target) event.target.classList.add('active');
+}
+
+function formatearFecha(fechaISO) {
+  if (!fechaISO) return '';
+  const f = new Date(fechaISO + 'T00:00:00');
+  return `${String(f.getDate()).padStart(2,'0')}/${String(f.getMonth()+1).padStart(2,'0')}/${f.getFullYear()}`;
+}
+
+function actualizarFechaFirma() {
+  const fechaRemito = document.getElementById('fecha')?.value;
+  const fechaFirma = document.getElementById('fechaFirma');
+  if (fechaFirma && fechaRemito) fechaFirma.value = fechaRemito;
+}
+
+function sincronizarConductor() {
+  const conductor = document.getElementById('conductor');
+  const nombreConductor = document.getElementById('nombreConductor');
+  if (conductor && nombreConductor) {
+    conductor.addEventListener('input', () => nombreConductor.value = conductor.value);
+    conductor.addEventListener('blur', () => nombreConductor.value = conductor.value);
+  }
+}
+
+function setupUppercaseConversion() {
+  ['forceNumber', 'origenRS', 'origenDom', 'origenCUIT', 'destinoRS', 'destinoDom', 'conductor', 'dni', 'vehiculo', 'acoplado', 'detalle', 'nombreConductor', 'nombreReceptor', 'usuarioConfig'].forEach(id => {
+    const field = document.getElementById(id);
+    if (field) {
+      field.addEventListener('input', function() {
+        const start = this.selectionStart;
+        this.value = this.value.toUpperCase();
+        this.setSelectionRange(start, start);
+      });
+    }
+  });
+}
+
+function actualizarContadorFilas() {
+  const detalle = document.getElementById('detalle')?.value?.trim() || '';
+  const filas = detalle.split('\n').filter(l => l.trim());
+  document.getElementById('contadorFilas').textContent = filas.length;
+  
+  let paginas = 1;
+  if (filas.length > FILAS_PAGINA_1) paginas = 1 + Math.ceil((filas.length - FILAS_PAGINA_1) / FILAS_PAGINA_SIGUIENTE);
+  
+  const info = document.getElementById('contadorFilasInfo');
+  info.innerHTML = `Registros: ${filas.length} | Páginas por copia: ${paginas}`;
+  info.className = 'contador-filas ' + (paginas > 2 ? 'danger' : paginas > 1 ? 'warning' : 'normal');
+}
+
+function guardarConfigUsuario() {
+  const input = document.getElementById('usuarioConfig');
+  if (!input?.value.trim()) { alert('⚠️ Ingrese un usuario válido'); return; }
+  sistemaDatos.setUsuario(input.value.trim());
+  mostrarNotificacionExito(`✅ Usuario: ${input.value.trim()}`);
+  cargarNumeroRemitoServer();
+}
+
+// ==========================================================================
+// GENERACIÓN DE PDF
+// ==========================================================================
+
+async function validarYPrevisualizar() {
+  if (!validarFormulario()) { alert('❌ Complete campos obligatorios'); return; }
+  
+  const filas = document.getElementById('detalle').value.trim().split('\n').filter(l => l.trim());
+  const html = generarHTMLCompleto(filas);
+  
+  const iframe = document.getElementById('iframeUnico');
+  if (iframe) iframe.srcdoc = html;
+  showTab('preview');
+  mostrarNotificacionExito('Previsualización lista');
+}
+
+function generarHTMLCompleto(filas) {
+  const valores = {
+    numRemito: document.getElementById('numRemito')?.value || '',
+    fecha: formatearFecha(document.getElementById('fecha')?.value),
+    origenRS: document.getElementById('origenRS')?.value || '',
+    origenDom: document.getElementById('origenDom')?.value || '',
+    origenCUIT: document.getElementById('origenCUIT')?.value || '',
+    destinoRS: document.getElementById('destinoRS')?.value || '',
+    destinoDom: document.getElementById('destinoDom')?.value || '',
+    conductor: document.getElementById('conductor')?.value || '',
+    dni: document.getElementById('dni')?.value || '',
+    vehiculo: document.getElementById('vehiculo')?.value || '',
+    acoplado: document.getElementById('acoplado')?.value || '',
+    nombreConductor: document.getElementById('nombreConductor')?.value || '',
+    nombreReceptor: document.getElementById('nombreReceptor')?.value || '',
+    fechaFirma: formatearFecha(document.getElementById('fechaFirma')?.value || document.getElementById('fecha')?.value),
+    usuario: sistemaDatos?.datos?.usuario || ''
+  };
+  
+  const filasHTML = filas.map(linea => {
+    const c = linea.split(';').map(x => x.trim());
+    return `<tr><td>${c[0]||''}</td><td>${c[1]||''}</td><td>${c[2]||''}</td><td>${c[3]||''}</td></tr>`;
+  }).join('');
+  
+  const paginaHTML = (tipo) => `
+    <div style="width:210mm; min-height:297mm; padding:15mm; background:white; font-family:Arial; font-size:11pt; box-sizing:border-box; display:flex; flex-direction:column;">
+      <table width="100%" style="margin-bottom:15px;">
+        <tr>
+          <td width="35%">${logoURL ? `<img src="${logoURL}" style="max-width:180px;">` : ''}</td>
+          <td width="65%" align="center">
+            <div style="font-size:18pt; font-weight:bold; color:#1a3c6e;">REMITO INTERNO</div>
+            <div style="font-size:14pt; color:#4caf50;">${valores.usuario ? 'USUARIO: ' + valores.usuario : ''}</div>
+            <h2 style="color:#d32f2f; font-size:18pt;">${tipo}</h2>
+          </td>
+        </tr>
+        <tr><td colspan="2" style="text-align:right; font-weight:bold;">N° ${valores.numRemito} - Fecha: ${valores.fecha}</td></tr>
+      </table>
+      
+      <div style="border:3px double #1a3c6e; padding:20px; margin-bottom:15px;">
+        <table width="100%">
+          <tr>
+            <td width="50%" style="border:1px solid #000; padding:12px;">
+              <strong>ORIGEN</strong><br>
+              RS: ${valores.origenRS}<br>
+              Dom: ${valores.origenDom}<br>
+              CUIT: ${valores.origenCUIT}
+            </td>
+            <td width="50%" style="border:1px solid #000; padding:12px;">
+              <strong>DESTINO</strong><br>
+              RS: ${valores.destinoRS}<br>
+              Dom: ${valores.destinoDom}
+            </td>
+          </tr>
+        </table>
+        <table width="100%" style="margin-top:15px;">
+          <tr>
+            <td width="50%" style="border:1px solid #000; padding:12px;">
+              <strong>Transporte</strong><br>
+              Conductor: ${valores.conductor}, DNI: ${valores.dni}<br>
+              Veh: ${valores.vehiculo} / Acoplado: ${valores.acoplado}
+            </td>
+            <td width="50%" style="border:1px solid #000; padding:12px;">
+              <strong>Traslado</strong><br>
+              Partida: ${valores.origenDom}<br>
+              Destino: ${valores.destinoDom}
+            </td>
+          </tr>
+        </table>
+      </div>
+      
+      <h3 style="color:#1a3c6e;">DETALLE DE LOS BIENES</h3>
+      <table width="100%" border="1" style="border-collapse:collapse;">
+        <thead><tr style="background:#1a3c6e; color:white;"><th>CANT</th><th>UNIDAD</th><th>BIENES</th><th>ESTADO</th></tr></thead>
+        <tbody>${filasHTML}</tbody>
+      </table>
+      
+      <div style="margin-top:auto;">
+        <div style="margin:20px 0; padding:15px; background:#fff8e1; border-left:6px solid #ffb300;">
+          <b>TRASLADO INTERNO DE BIENES – NO CONSTITUYE TRANSFERENCIA DE DOMINIO – ART. 26 RG 3358/2012</b>
+        </div>
+        <div style="text-align:center; color:#d32f2f; font-size:16pt; font-weight:bold; margin:20px 0;">DOCUMENTO NO VÁLIDO COMO FACTURA</div>
+        <table width="100%">
+          <tr>
+            <td style="text-align:center; width:50%;">
+              <div style="border-top:1px solid #000; margin-top:50px; padding-top:5px;">
+                <b>FIRMA CONDUCTOR</b><br>${valores.nombreConductor}<br>Fecha: ${valores.fechaFirma}
+              </div>
+            </td>
+            <td style="text-align:center; width:50%;">
+              <div style="border-top:1px solid #000; margin-top:50px; padding-top:5px;">
+                <b>FIRMA RECEPTOR</b><br>${valores.nombreReceptor}<br>Fecha: ${valores.fechaFirma}
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  `;
+  
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@media print { .page-break { page-break-after:always; } }</style></head><body>`
+    + paginaHTML('ORIGINAL') 
+    + '<div class="page-break"></div>' 
+    + paginaHTML('DUPLICADO') 
+    + `</body></html>`;
+}
+
+async function validarYDescargarPDF() {
+  if (numeracionSistema.isGenerating) return;
+  if (!validarFormulario()) { alert('❌ Complete campos obligatorios'); return; }
+  if (!window.jspdf) { alert('❌ Librería no cargada'); return; }
+  
+  numeracionSistema.isGenerating = true;
+  document.getElementById('loading')?.classList.add('active');
+  
+  try {
+    const filas = document.getElementById('detalle').value.trim().split('\n').filter(l => l.trim());
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    
+    await generarPaginaPDF(pdf, filas, 'ORIGINAL', true);
+    pdf.addPage();
+    await generarPaginaPDF(pdf, filas, 'DUPLICADO', false);
+    
+    const numRemito = document.getElementById('numRemito')?.value || 'remito';
+    pdf.save(`${numRemito}.pdf`);
+    
+    mostrarNotificacionExito('PDF generado');
+    
+  } catch (error) {
+    alert('❌ Error: ' + error.message);
+  } finally {
+    document.getElementById('loading')?.classList.remove('active');
+    numeracionSistema.isGenerating = false;
+  }
+}
+
+async function generarPaginaPDF(pdf, filas, tipo, esPrimera) {
+  const html = generarHTMLCompleto(filas);
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  container.style.position = 'absolute';
+  container.style.left = '-9999px';
+  document.body.appendChild(container);
+  
+  await new Promise(r => setTimeout(r, 100));
+  
+  const canvas = await html2canvas(container.firstElementChild, {
+    scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 794, height: 1123
+  });
+  
+  pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297);
+  document.body.removeChild(container);
+}
+
+// ==========================================================================
+// INICIALIZACIÓN
+// ==========================================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+  sistemaDatos = new SistemaDatos();
+  setupUppercaseConversion();
+  sincronizarConductor();
+  verificarServidor();
+  cargarNumeroRemitoServer();
+  actualizarContadorFilas();
+  
+  document.getElementById('detalle')?.addEventListener('input', actualizarContadorFilas);
+  document.getElementById('forceNumber')?.addEventListener('input', cargarNumeroRemitoServer);
+  document.getElementById('fecha')?.addEventListener('change', actualizarFechaFirma);
+  
+  document.getElementById('logoInput')?.addEventListener('change', function(e) {
+    if (e.target.files[0]) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        logoURL = ev.target.result;
+        const preview = document.getElementById('logoPreview');
+        if (preview) { preview.src = logoURL; preview.style.display = 'block'; }
+        mostrarNotificacionExito('Logo cargado');
+      };
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  });
+});
+</script>
+
+</body>
+</html>
