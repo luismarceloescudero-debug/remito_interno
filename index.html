@@ -126,11 +126,10 @@
             <label>N° Remito (automático)</label>
             <input id="numRemito" readonly style="background:#f0f0f0; font-weight:bold; font-size:18px; text-align:center;">
             <div style="margin-top:10px;">
-              <label style="font-size:13px;">Tipo de remito:</label>
+              <label style="font-size:13px;">Copias del remito:</label>
               <select id="tipoRemito" style="padding:8px; font-size:14px;" onchange="actualizarTipoDocumento()">
-                <option value="ORIGINAL">ORIGINAL</option>
-                <option value="DUPLICADO">DUPLICADO</option>
-                <option value="TRIPLICADO">TRIPLICADO</option>
+                <option value="DUPLICADO">DUPLICADO (ORIGINAL + DUPLICADO)</option>
+                <option value="TRIPLICADO">TRIPLICADO (ORIGINAL + DUPLICADO + TRIPLICADO)</option>
               </select>
             </div>
             <div class="info-box" id="infoNumeracion" style="display:none;"></div>
@@ -277,7 +276,7 @@
           <li>Los campos marcados con (*) son obligatorios.</li>
           <li>Formato detalle: <strong>Cantidad ; Unidad ; Descripción ; Estado</strong></li>
           <li>N° de remito se genera automáticamente.</li>
-          <li>Seleccioná <strong>ORIGINAL, DUPLICADO o TRIPLICADO</strong> antes de generar.</li>
+          <li>Seleccioná <strong>DUPLICADO (2 copias)</strong> o <strong>TRIPLICADO (3 copias)</strong> antes de generar.</li>
           <li>El PDF se guarda automáticamente en Google Sheets al descargar.</li>
           <li>Datos fijos SOLO en página 1. Tabla sola en páginas 2+.</li>
           <li>Leyendas y firmas están en <strong>TODAS</strong> las páginas.</li>
@@ -853,19 +852,19 @@ function cargarDatosActualesEnModalConductores() {
 }
 
 function actualizarTipoDocumento() {
-  tipoDocumento = document.getElementById('tipoRemito')?.value || 'ORIGINAL';
+  tipoDocumento = document.getElementById('tipoRemito')?.value || 'DUPLICADO';
   cargarNumeroRemito();
+  actualizarContadorFilas();
 }
 
 function cargarNumeroRemito() {
   const hoy = new Date();
   const año = hoy.getFullYear();
   
-  const tipo = document.getElementById('tipoRemito')?.value || 'ORIGINAL';
   const forceNumber = document.getElementById('forceNumber')?.value.trim();
   if (forceNumber) {
     const numRemito = document.getElementById('numRemito');
-    if (numRemito) numRemito.value = tipo === 'ORIGINAL' ? forceNumber.toUpperCase() : `${forceNumber.toUpperCase()}-${tipo}`;
+    if (numRemito) numRemito.value = forceNumber.toUpperCase();
     return;
   }
   
@@ -884,12 +883,11 @@ function cargarNumeroRemito() {
   
   const nuevoNumero = numeracionSistema.ultimoNumero + 1;
   const numeroFormateado = `RI${prefijoUsuario ? '_' + prefijoUsuario : ''}-${año}-${String(nuevoNumero).padStart(5, '0')}`;
-  const numConTipo = tipo === 'ORIGINAL' ? numeroFormateado : `${numeroFormateado}-${tipo}`;
   
   const numRemito = document.getElementById('numRemito');
   const fecha = document.getElementById('fecha');
   
-  if (numRemito) numRemito.value = numConTipo;
+  if (numRemito) numRemito.value = numeroFormateado;
   if (fecha) {
     fecha.value = hoy.toISOString().split('T')[0];
     actualizarFechaFirma();
@@ -1302,16 +1300,24 @@ async function validarYPrevisualizar() {
   
   const filas = detalleEl.value.trim().split('\n').filter(l => l.trim());
   
-  const tipo = document.getElementById('tipoRemito')?.value || 'ORIGINAL';
-  const resultado = await generarPaginasPrevisualizacion(filas, tipo);
+  const tipoSeleccionado = document.getElementById('tipoRemito')?.value || 'DUPLICADO';
+  const copias = tipoSeleccionado === 'TRIPLICADO' ? ['ORIGINAL', 'DUPLICADO', 'TRIPLICADO'] : ['ORIGINAL', 'DUPLICADO'];
   
-  const contenidoHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body { margin:0; padding:20px; background:#e0e0e0; font-family: Arial, sans-serif; }</style></head><body>${resultado.html}</body></html>`;
+  let htmlTotal = '';
+  let totalPaginas = 0;
+  for (const tipo of copias) {
+    const resultado = await generarPaginasPrevisualizacion(filas, tipo);
+    htmlTotal += resultado.html + '<div style="page-break-after:always; height:30px; background:#333; margin:20px 0; text-align:center; line-height:30px; color:white; font-size:14px;">--- FIN ' + tipo + ' ---</div>';
+    totalPaginas += resultado.totalPaginas;
+  }
+  
+  const contenidoHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body { margin:0; padding:20px; background:#e0e0e0; font-family: Arial, sans-serif; }</style></head><body>${htmlTotal}</body></html>`;
   
   const iframe = document.getElementById('iframeUnico');
   if (iframe) iframe.srcdoc = contenidoHTML;
   
   showTab('preview');
-  mostrarNotificacionExito(`Previsualización: ${resultado.totalPaginas} página(s)`);
+  mostrarNotificacionExito(`Previsualización: ${copias.length} copias (${totalPaginas} páginas total)`);
 }
 
 async function generarPaginasPDF(pdf, filas, tipo, esPrimeraDelPDF) {
@@ -1412,11 +1418,14 @@ async function validarYDescargarPDF() {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
     
-    const tipo = document.getElementById('tipoRemito')?.value || 'ORIGINAL';
+    const tipoSeleccionado = document.getElementById('tipoRemito')?.value || 'DUPLICADO';
+    const copias = tipoSeleccionado === 'TRIPLICADO' ? ['ORIGINAL', 'DUPLICADO', 'TRIPLICADO'] : ['ORIGINAL', 'DUPLICADO'];
     
-    await generarPaginasPDF(pdf, filas, tipo, true);
-    
-    const totalPaginas = Math.ceil(filas.length <= FILAS_PAGINA_1 ? 1 : 1 + Math.ceil((filas.length - FILAS_PAGINA_1) / FILAS_PAGINA_SIGUIENTE));
+    let totalPaginasPDF = 0;
+    for (const tipo of copias) {
+      await generarPaginasPDF(pdf, filas, tipo, totalPaginasPDF === 0);
+      totalPaginasPDF += Math.ceil(filas.length <= FILAS_PAGINA_1 ? 1 : 1 + Math.ceil((filas.length - FILAS_PAGINA_1) / FILAS_PAGINA_SIGUIENTE));
+    }
     
     const numRemito = document.getElementById('numRemito')?.value || 'remito';
     const nombre = numRemito.replace(/[^a-zA-Z0-9-]/g, '_');
@@ -1425,7 +1434,7 @@ async function validarYDescargarPDF() {
     const datosRemito = {
       numero: numRemito,
       fecha: document.getElementById('fecha')?.value,
-      tipo: tipo,
+      tipo: tipoSeleccionado,
       origenRS: document.getElementById('origenRS')?.value,
       origenDom: document.getElementById('origenDom')?.value,
       origenCUIT: document.getElementById('origenCUIT')?.value,
@@ -1441,9 +1450,9 @@ async function validarYDescargarPDF() {
     
     const resultadoGS = await guardarEnGoogleSheets(datosRemito);
     if (resultadoGS.success) {
-      mostrarNotificacionExito(`✅ PDF generado (${totalPaginas} págs) y guardado en Google Sheets`);
+      mostrarNotificacionExito(`✅ PDF generado (${copias.length} copias, ${totalPaginasPDF} páginas total) y guardado en Google Sheets`);
     } else {
-      mostrarNotificacionExito(`⚠️ PDF generado (${totalPaginas} págs) - Error al guardar en Sheets: ${resultadoGS.message}`);
+      mostrarNotificacionExito(`⚠️ PDF generado (${copias.length} copias, ${totalPaginasPDF} páginas) - Error al guardar en Sheets: ${resultadoGS.message}`);
     }
     
     const año = new Date().getFullYear();
@@ -1472,12 +1481,17 @@ function actualizarContadorFilas() {
   if (contador) contador.textContent = filas.length;
   
   if (contadorInfo) {
-    let paginas = 1;
+    let paginasPorCopia = 1;
     if (filas.length > FILAS_PAGINA_1) {
-      paginas = 1 + Math.ceil((filas.length - FILAS_PAGINA_1) / FILAS_PAGINA_SIGUIENTE);
+      paginasPorCopia = 1 + Math.ceil((filas.length - FILAS_PAGINA_1) / FILAS_PAGINA_SIGUIENTE);
     }
-    contadorInfo.innerHTML = `Registros: ${filas.length} | Páginas por copia: ${paginas}`;
-    contadorInfo.className = 'contador-filas ' + (paginas > 2 ? 'danger' : paginas > 1 ? 'warning' : 'normal');
+    
+    const tipoSeleccionado = document.getElementById('tipoRemito')?.value || 'DUPLICADO';
+    const numCopias = tipoSeleccionado === 'TRIPLICADO' ? 3 : 2;
+    const totalPaginas = paginasPorCopia * numCopias;
+    
+    contadorInfo.innerHTML = `Registros: ${filas.length} | Copias: ${numCopias} | Páginas por copia: ${paginasPorCopia} | <strong>Total páginas PDF: ${totalPaginas}</strong>`;
+    contadorInfo.className = 'contador-filas ' + (totalPaginas > 6 ? 'danger' : totalPaginas > 3 ? 'warning' : 'normal');
   }
 }
 
@@ -1504,6 +1518,11 @@ document.addEventListener('DOMContentLoaded', function() {
   const forceNumber = document.getElementById('forceNumber');
   if (forceNumber) {
     forceNumber.addEventListener('input', cargarNumeroRemito);
+  }
+  
+  const tipoRemitoSelect = document.getElementById('tipoRemito');
+  if (tipoRemitoSelect) {
+    tipoRemitoSelect.addEventListener('change', actualizarContadorFilas);
   }
   
   const logoInput = document.getElementById('logoInput');
