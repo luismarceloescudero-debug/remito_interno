@@ -325,7 +325,7 @@ URL de ejemplo (REEMPLAZAR):
   const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbxxxxxx/dev';
 =============================================================================
 */
-const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbzdP6Jow0hAH5b8DdtZfdXIVQkop4sFvfKX85cgU_mCqcqttPWcnzpJW76ysutwg99H3w/exec';
+const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbyNDBKzBAo6-y7rey3werFTY1LYFV5bRxgtOd-rYNRu4M41iObR0Uc4CTYJQYpZHwuy3w/exec';
 
 // ==========================================================================
 // VARIABLES GLOBALES
@@ -343,10 +343,13 @@ let sistemaDatos;
 // ==========================================================================
 async function verificarServidor() {
   try {
-    const response = await fetch(`${GAS_BASE_URL}?action=getNextRemito&usuario=TEST`, { 
+    const url = `${GAS_BASE_URL}?action=getNextRemito&usuario=TEST`;
+    console.log('Verificando servidor:', url);
+    const response = await fetch(url, { 
       method: 'GET',
       redirect: 'follow'
     });
+    console.log('Respuesta:', response.status, response.statusText);
     servidorOnline = response.ok || response.status === 302;
     actualizarIndicadorServidor();
   } catch (e) {
@@ -600,23 +603,37 @@ async function cargarNumeroRemitoServer() {
   
   try {
     const url = `${GAS_BASE_URL}?action=getNextRemito&usuario=${encodeURIComponent(usuario)}`;
+    console.log('Cargando número:', url);
     const response = await fetch(url, { method: 'GET', redirect: 'follow' });
+    console.log('Response status:', response.status);
     
-    if (!response.ok) throw new Error('Error servidor');
+    if (!response.ok) throw new Error('Error servidor: ' + response.status);
     
     const text = await response.text();
+    console.log('Response text:', text.substring(0, 500));
+    
     let data;
     try {
       data = JSON.parse(text);
     } catch(e) {
+      // Buscar JSON en la respuesta
       const match = text.match(/\{.*\}/);
-      if (match) data = JSON.parse(match[0]);
-      else throw new Error('Respuesta inválida');
+      if (match) {
+        data = JSON.parse(match[0]);
+      } else {
+        throw new Error('No se pudo parsear JSON');
+      }
     }
     
-    document.getElementById('numRemito').value = data.numero;
-    numeracionSistema.ultimoNumero = data.valor;
-    servidorOnline = true;
+    console.log('Data parsed:', data);
+    
+    if (data && data.numero) {
+      document.getElementById('numRemito').value = data.numero;
+      numeracionSistema.ultimoNumero = data.valor;
+      servidorOnline = true;
+    } else {
+      throw new Error('Respuesta sin número');
+    }
   } catch (error) {
     console.error('Error numeración server:', error);
     servidorOnline = false;
