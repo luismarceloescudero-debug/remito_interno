@@ -7,109 +7,97 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
-    * { box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; background: #f0f4f8; padding: 20px; margin: 0; }
-    .container { max-width: 1150px; margin: auto; background: white; border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.15); overflow: hidden; }
-    .header { background: #1a3c6e; color: white; padding: 25px; text-align: center; font-size: 24px; font-weight: bold; }
-    .form { padding: 35px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    label { font-weight: 600; color: #333; display: block; margin-bottom: 8px; }
-    input, textarea, select { width: 100%; padding: 14px; border: 1px solid #ddd; border-radius: 12px; font-size: 15px; }
-    .full { grid-column: 1 / -1; }
-    button { background: #1a3c6e; color: white; padding: 16px 40px; border: none; border-radius: 12px; cursor: pointer; font-size: 18px; margin: 15px 10px; }
-    button:hover { background: #0f2a56; }
-    button:disabled { background: #ccc; cursor: not-allowed; }
-    
-    .btn-success { background: #4CAF50; }
-    .btn-success:hover { background: #45a049; }
-    .btn-warning { background: #ff9800; }
-    .btn-warning:hover { background: #f57c00; }
-    .btn-danger { background: #f44336; }
-    .btn-danger:hover { background: #d32f2f; }
-    .btn-info { background: #2196f3; }
-    .btn-info:hover { background: #1976d2; }
-    
-    #logoPreview { max-height: 100px; margin: 15px 0; border: 2px dashed #999; border-radius: 12px; padding: 10px; background: #fafafa; display: none; }
-    .actions { text-align: center; margin: 50px 0; }
-    .error { border: 2px solid #ff4444 !important; }
-    .error-message { color: #ff4444; font-size: 14px; margin-top: 5px; display: none; }
-    .success-notification { position: fixed; top: 20px; right: 20px; background: #4CAF50; color: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); display: none; z-index: 1000; }
-    
-    .section-title { font-weight: bold; color: #1a3c6e; margin-top: 20px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid #1a3c6e; }
-    .suggestions { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #1a3c6e; }
-    
-    .preview-unica { margin-top: 20px; border: 1px solid #ddd; border-radius: 8px; overflow: auto; background: white; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-height: 800px; }
-    .preview-unica iframe { width: 100%; height: 800px; border: none; }
-    .preview-header { background: #1a3c6e; color: white; padding: 10px 15px; font-weight: bold; text-align: center; border-radius: 8px 8px 0 0; }
-    
-    .tab-container { margin-bottom: 20px; }
-    .tab-button { background: #e0e0e0; border: none; padding: 10px 20px; cursor: pointer; margin-right: 5px; border-radius: 5px 5px 0 0; }
-    .tab-button.active { background: #1a3c6e; color: white; }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-    
-    .numero-control { background: #f0f0f0; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-    .uppercase-hint { font-size: 12px; color: #666; margin-top: 5px; font-style: italic; }
-    .info-box { background: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px; padding: 10px; margin: 10px 0; font-size: 14px; color: #1565c0; }
-    
-    .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 2000; }
-    .loading-overlay.active { display: flex; }
-    .loading-content { background: white; padding: 30px; border-radius: 12px; text-align: center; }
-    .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #1a3c6e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    
-    .debug-info { background: #fff3cd; border: 1px solid #ffc107; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 13px; }
-    .contador-filas { font-weight: bold; margin-top: 5px; padding: 8px; border-radius: 4px; }
-    .contador-filas.normal { background: #e3f2fd; color: #1565c0; }
-    .contador-filas.warning { background: #fff3cd; color: #856404; }
-    .contador-filas.danger { background: #f8d7da; color: #721c24; }
-    
-    .autocomplete-wrapper { position: relative; width: 100%; }
-    .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #1a3c6e; border-top: none; border-radius: 0 0 12px 12px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: none; }
-    .autocomplete-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #eee; transition: background 0.2s; font-size: 14px; }
-    .autocomplete-item:hover, .autocomplete-item.selected { background: #e3f2fd; }
-    .autocomplete-item strong { color: #1a3c6e; }
-    .autocomplete-item small { color: #666; display: block; margin-top: 2px; }
-    .autocomplete-highlight { background: #fff176; font-weight: bold; }
-    
-    .server-status { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
-    .server-status.online { background: #4caf50; }
-    .server-status.offline { background: #f44336; }
-    .server-status.checking { background: #ff9800; }
-    
-    .usuario-activo { background: #e8f5e9; border: 1px solid #4caf50; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; text-align: center; }
-    
-    .modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
-    .modal-content { background-color: white; margin: 3% auto; padding: 20px; border-radius: 12px; width: 90%; max-width: 900px; max-height: 85vh; overflow-y: auto; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #1a3c6e; }
-    .close-modal { font-size: 28px; font-weight: bold; cursor: pointer; color: #aaa; }
-    .close-modal:hover { color: #000; }
-    
-    .empresa-item { padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; }
-    .empresa-actions { display: flex; gap: 5px; margin-top: 10px; }
-    .empresa-actions button { padding: 8px 15px; font-size: 14px; margin: 0; }
-    
-    .domicilio-selector { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
-    
-    .domicilios-container { margin-top: 10px; }
-    .domicilio-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-    .domicilio-row input { flex: 1; font-size: 13px; padding: 10px; }
-    .domicilio-row button { padding: 8px 12px; font-size: 12px; margin: 0; min-width: auto; }
-    .btn-remove-dom { background: #f44336 !important; }
-    .btn-move-dom { background: #2196f3 !important; padding: 8px 10px !important; }
-    .btn-add-dom { background: #4CAF50 !important; margin-top: 10px; width: 100%; }
-    
-    .auto-filled { background-color: #e8f5e9 !important; border-color: #4caf50 !important; }
-    
-    #templateContainer { position: absolute; left: -9999px; top: 0; width: 210mm; height: auto !important; overflow: visible !important; display: block !important; }
-    #template { width: 210mm; min-height: 297mm; padding: 15mm 18mm; background: white; font-family: Arial; font-size: 11pt; box-sizing: border-box; display: flex; flex-direction: column; }
-    .firma-fija { position: relative; margin-top: auto; padding-top: 30px; width: 100%; }
-
-    .actions-bar { background: #f5f5f5; padding: 20px; margin-top: 20px; border-radius: 12px; text-align: center; }
-    .actions-bar h3 { margin: 0 0 15px 0; color: #1a3c6e; }
+    body {font-family: Arial,sans-serif; background:#f0f4f8; padding:20px; margin:0;}
+    .container {max-width:1150px; margin:auto; background:white; border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,0.15); overflow:hidden;}
+    .header {background:#1a3c6e; color:white; padding:25px; text-align:center; font-size:24px; font-weight:bold;}
+    .form {padding:35px;}
+    .grid {display:grid; grid-template-columns:1fr 1fr; gap:20px;}
+    label {font-weight:600; color:#333; display:block; margin-bottom:8px;}
+    input, textarea, select {width:100%; padding:14px; border:1px solid #ddd; border-radius:12px; font-size:15px; box-sizing:border-box;}
+    .full {grid-column:1/-1;}
+    button {background:#1a3c6e; color:white; padding:16px 40px; border:none; border-radius:12px; cursor:pointer; font-size:18px; margin:15px 10px;}
+    button:hover {background:#0f2a56;}
+    #logoPreview {max-height:100px; margin:15px 0; border:2px dashed #999; border-radius:12px; padding:10px; background:#fafafa;}
+    .preview {margin-top:40px; border:5px solid #1a3c6e; border-radius:16px; display:none;}
+    .actions {text-align:center; margin:50px 0;}
+    .error {border:2px solid #ff4444 !important;}
+    .error-message {color:#ff4444; font-size:14px; margin-top:5px; display:none;}
+    .success-notification {position:fixed; top:20px; right:20px; background:#4CAF50; color:white; padding:15px 25px; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.2); display:none; z-index:1000;}
+    .section-title {font-weight:bold; color:#1a3c6e; margin-top:20px; margin-bottom:10px; padding-bottom:5px; border-bottom:2px solid #1a3c6e;}
+    .suggestions {background:#f8f9fa; padding:15px; border-radius:8px; margin-top:20px; border-left:4px solid #1a3c6e;}
+    .preview-unica {margin-top:20px; border:1px solid #ddd; border-radius:8px; overflow:auto; background:white; box-shadow:0 4px 8px rgba(0,0,0,0.1); max-height:800px;}
+    .preview-unica iframe {width:100%; height:800px; border:none;}
+    .preview-header {background:#1a3c6e; color:white; padding:10px 15px; font-weight:bold; text-align:center; border-radius:8px 8px 0 0;}
+    .tab-container {margin-bottom:20px;}
+    .tab-button {background:#e0e0e0; border:none; padding:10px 20px; cursor:pointer; margin-right:5px; border-radius:5px 5px 0 0;}
+    .tab-button.active {background:#1a3c6e; color:white;}
+    .tab-content {display:none;}
+    .tab-content.active {display:block;}
+    .numero-control {background:#f0f0f0; padding:15px; border-radius:8px; margin-bottom:20px;}
+    .uppercase-hint {font-size:12px; color:#666; margin-top:5px; font-style:italic;}
+    .info-box {background:#e3f2fd; border:1px solid #90caf9; border-radius:8px; padding:10px; margin:10px 0; font-size:14px; color:#1565c0;}
+    .loading-overlay {position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:none; justify-content:center; align-items:center; z-index:2000;}
+    .loading-overlay.active {display:flex;}
+    .loading-content {background:white; padding:30px; border-radius:12px; text-align:center;}
+    .spinner {border:4px solid #f3f3f3; border-top:4px solid #1a3c6e; border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite; margin:0 auto 20px;}
+    @keyframes spin {0% {transform:rotate(0deg);} 100% {transform:rotate(360deg);}}
+    .debug-info {background:#fff3cd; border:1px solid #ffc107; padding:10px; margin:10px 0; border-radius:5px; font-size:13px;}
+    .contador-filas {font-weight:bold; margin-top:5px; padding:8px; border-radius:4px;}
+    .contador-filas.normal {background:#e3f2fd; color:#1565c0;}
+    .contador-filas.warning {background:#fff3cd; color:#856404;}
+    .contador-filas.danger {background:#f8d7da; color:#721c24;}
+    .autocomplete-wrapper {position:relative; width:100%;}
+    .autocomplete-list {position:absolute; top:100%; left:0; right:0; background:white; border:2px solid #1a3c6e; border-top:none; border-radius:0 0 12px 12px; max-height:200px; overflow-y:auto; z-index:1000; box-shadow:0 4px 12px rgba(0,0,0,0.15); display:none;}
+    .autocomplete-item {padding:12px 15px; cursor:pointer; border-bottom:1px solid #eee; transition:background 0.2s; font-size:14px;}
+    .autocomplete-item:hover, .autocomplete-item.selected {background:#e3f2fd;}
+    .autocomplete-item strong {color:#1a3c6e;}
+    .autocomplete-item small {color:#666; display:block; margin-top:2px;}
+    .autocomplete-highlight {background:#fff176; font-weight:bold;}
+    #templateContainer {position:absolute; left:-9999px; top:0; width:210mm; height:auto !important; overflow:visible !important; display:block !important;}
+    #template {width:210mm; min-height:297mm; padding:15mm 18mm; background:white; font-family:Arial; font-size:11pt; box-sizing:border-box; display:flex; flex-direction:column;}
+    .firma-fija {position:relative; margin-top:auto; padding-top:30px; width:100%;}
+    #bienesPDF tr {height:8mm;}
+    #bienesPDF td {padding:4px 6px !important; vertical-align:middle; border:1px solid #000 !important; border-top:none !important; border-left:none !important;}
+    #bienesPDF tr:first-child td {border-top:1px solid #000 !important;}
+    #bienesPDF td:first-child {border-left:1px solid #000 !important;}
+    datalist {max-height:150px; overflow-y:auto;}
+    .autocomplete-container {position:relative;}
+    .modal {display:none; position:fixed; z-index:3000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5);}
+    .modal-content {background-color:white; margin:3% auto; padding:20px; border-radius:12px; width:90%; max-width:900px; max-height:85vh; overflow-y:auto;}
+    .modal-header {display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:10px; border-bottom:2px solid #1a3c6e;}
+    .close-modal {font-size:28px; font-weight:bold; cursor:pointer; color:#aaa;}
+    .close-modal:hover {color:#000;}
+    .empresa-item {padding:15px; margin:10px 0; border:1px solid #ddd; border-radius:8px; background:#fafafa;}
+    .empresa-domicilios {display:grid; grid-template-columns:1fr; gap:10px; margin-top:10px; max-height:300px; overflow-y:auto;}
+    .domicilio-field {display:flex; gap:5px; align-items:center;}
+    .domicilio-field input {flex:1; font-size:13px; padding:8px;}
+    .domicilio-field button {padding:6px 10px; font-size:12px; margin:0; min-width:30px;}
+    .empresa-actions {display:flex; gap:5px; margin-top:10px;}
+    .empresa-actions button {padding:8px 15px; font-size:14px; margin:0;}
+    .btn-agregar-domicilio {background:#4CAF50 !important; font-size:16px !important; padding:8px 12px !important;}
+    .btn-eliminar-domicilio {background:#f44336 !important;}
+    .btn-mover {background:#2196f3 !important; color:white !important; padding:6px 10px !important; border:none; border-radius:4px; cursor:pointer;}
+    .btn-mover:hover {background:#1976d2 !important;}
+    .btn-mover:disabled {background:#ccc !important; cursor:not-allowed;}
+    .btn-cargar-actual {background:#4CAF50; color:white; padding:10px 20px; border:none; border-radius:8px; cursor:pointer; margin-bottom:15px;}
+    .btn-cargar-actual:hover {background:#45a049;}
+    .usuario-activo {background:#e8f5e9; border:1px solid #4caf50; padding:10px; border-radius:8px; margin-bottom:15px; font-weight:bold; text-align:center;}
+    .domicilio-selector {display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center;}
+    .domicilios-container {margin-top:10px;}
+    .domicilio-row {display:flex; gap:8px; align-items:center; margin-bottom:8px;}
+    .domicilio-row input {flex:1; font-size:13px; padding:10px;}
+    .domicilio-row button {padding:8px 12px; font-size:12px; margin:0; min-width:auto;}
+    .btn-remove-dom {background:#f44336 !important;}
+    .btn-move-dom {background:#2196f3 !important; padding:8px 10px !important;}
+    .btn-add-dom {background:#4CAF50 !important; margin-top:10px; width:100%;}
+    .auto-filled {background-color:#e8f5e9 !important; border-color:#4caf50 !important;}
+    .btn-gestionar-datos {background:#ff9800 !important; margin-left:10px;}
+    .server-status {display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px;}
+    .server-status.online {background:#4caf50;}
+    .server-status.offline {background:#f44336;}
+    .server-status.checking {background:#ff9800;}
   </style>
 </head>
-
 <body>
 
 <div class="container">
@@ -117,7 +105,7 @@
   
   <div id="usuarioActivoDisplay" class="usuario-activo" style="display:none;"></div>
   
-  <div id="serverStatus" style="text-align:center; padding:5px; font-size:12px; color:#666;">
+  <div id="serverStatus" style="text-align:center; padding:5px; font-size:12px; color:#666; display:none;">
     <span class="server-status checking" id="statusDot"></span>
     <span id="statusText">Verificando conexión...</span>
   </div>
@@ -127,27 +115,25 @@
       <div class="full section-title">CONFIGURACIÓN DE USUARIO</div>
       <div class="full">
         <label>Usuario/Oficina (opcional - se guarda automáticamente)</label>
-        <input id="usuarioConfig" placeholder="Ej: OFICINA_CENTRAL, SUCURSAL_GODOY_CRUZ">
+        <input id="usuarioConfig" placeholder="Ej: OFICINA_CENTRAL, SUCURSAL_GODOY_CRUZ, USUARIO_JUAN">
         <button onclick="guardarConfigUsuario()" style="padding:10px 20px; font-size:14px; margin-top:10px;">Guardar Usuario</button>
+        <button onclick="limpiarConfigUsuario()" style="background:#f44336; padding:10px 20px; font-size:14px; margin-top:10px;">Borrar Usuario</button>
       </div>
 
       <div class="numero-control">
         <div class="grid">
           <div>
-            <label>N° Remito (automático desde servidor)</label>
+            <label>N° Remito (automático)</label>
             <input id="numRemito" readonly style="background:#f0f0f0; font-weight:bold; font-size:18px; text-align:center;">
             <div style="margin-top:10px;">
               <label style="font-size:13px;">Tipo de remito:</label>
-              <select id="tipoRemito" style="padding:8px; font-size:14px;">
+              <select id="tipoRemito" style="padding:8px; font-size:14px;" onchange="actualizarTipoDocumento()">
                 <option value="ORIGINAL">ORIGINAL</option>
                 <option value="DUPLICADO">DUPLICADO</option>
                 <option value="TRIPLICADO">TRIPLICADO</option>
               </select>
             </div>
-            <div class="info-box" id="infoNumeracion" style="margin-top:10px;">
-              <span class="server-status online" id="numStatusDot"></span>
-              <span id="numStatusText">Esperando servidor...</span>
-            </div>
+            <div class="info-box" id="infoNumeracion" style="display:none;"></div>
           </div>
           <div>
             <label>Forzar número (opcional)</label>
@@ -155,29 +141,33 @@
             <div class="uppercase-hint">El texto se convertirá automáticamente a mayúsculas</div>
           </div>
         </div>
-        <div style="margin-top:15px; text-align:center;">
-          <button onclick="nuevoRemito()" class="btn-success" style="padding:10px 20px; font-size:14px;">➕ NUEVO REMITO</button>
-          <button onclick="cargarNumeroRemitoServer()" class="btn-info" style="padding:10px 20px; font-size:14px;">🔄 ACTUALIZAR NÚMERO</button>
+        <div style="margin-top:15px;">
+          <button onclick="nuevoRemito()">➕ NUEVO REMITO</button>
+          <button onclick="backupNumeracion()">GUARDAR RESPALDO</button>
+          <button onclick="reiniciarNumeracion()" style="background:#ff9800;">REINICIAR NUMERACIÓN</button>
+          <input type="file" id="restoreFile" accept=".json" style="display:none;" onchange="restaurarNumeracion(event)">
+          <button onclick="mostrarModalEmpresas()" style="background:#9c27b0; margin-left:10px;">GESTIONAR EMPRESAS</button>
+          <button onclick="mostrarModalConductores()" class="btn-gestionar-datos">GESTIONAR CONDUCTORES/VEHÍCULOS</button>
         </div>
       </div>
       
       <div><label>Fecha</label><input type="date" id="fecha" required></div>
 
       <div class="full">
-        <label>Logo (opcional - carga manual)</label>
+        <label>Logo (opcional - carga manual recomendada)</label>
         <input type="file" id="logoInput" accept="image/*">
-        <img id="logoPreview" src="" alt="Logo" crossorigin="anonymous">
+        <img id="logoPreview" src="" alt="Logo" style="display:none; max-width:200px;" crossorigin="anonymous">
       </div>
 
       <div class="full section-title">DATOS DE ORIGEN Y DESTINO</div>
       
-      <div>
+      <div class="autocomplete-container">
         <label>Origen - Razón Social</label>
-        <input id="origenRS" value="HORMISERV SRL" required list="listaOrigenRS">
+        <input id="origenRS" value="HORMISERV SRL" required list="listaOrigenRS" autocomplete="on">
         <datalist id="listaOrigenRS"></datalist>
       </div>
       
-      <div>
+      <div class="autocomplete-container">
         <label>Origen - Seleccionar Domicilio</label>
         <div class="domicilio-selector">
           <select id="origenDomSelect" onchange="document.getElementById('origenDom').value = this.value">
@@ -189,13 +179,13 @@
       
       <div><label>Origen - CUIT</label><input id="origenCUIT" value="30-68164173-0"></div>
       
-      <div>
+      <div class="autocomplete-container">
         <label>Destino - Razón Social</label>
         <input id="destinoRS" value="HORMISERV SRL" required list="listaDestinoRS">
         <datalist id="listaDestinoRS"></datalist>
       </div>
       
-      <div>
+      <div class="autocomplete-container">
         <label>Destino - Seleccionar Domicilio</label>
         <div class="domicilio-selector">
           <select id="destinoDomSelect" onchange="document.getElementById('destinoDom').value = this.value">
@@ -232,7 +222,9 @@
         <label>Detalle de bienes → usar ; como separador</label>
         <textarea id="detalle" rows="8" required>12 ; M³ ; HORMIGÓN ELABORADO H30 ; BUENO
 1 ; UNIDAD ; BOMBA PLUMA 32M ; OPERATIVA
-3 ; UNIDADES ; ANDAMIOS TUBULARES ; EXCELENTE</textarea>
+3 ; UNIDADES ; ANDAMIOS TUBULARES ; EXCELENTE
+2; UNIDADES; COBRE 4MM; NUEVO
+60; UNIDADES; BOLSAS DE CEMENTO HOLCIM; NUEVO</textarea>
         <div id="detalleError" class="error-message">Formato incorrecto. Use: Cantidad ; Unidad ; Descripción ; Estado</div>
         <div class="uppercase-hint">El texto se convertirá automáticamente a mayúsculas</div>
         <div class="debug-info">
@@ -261,14 +253,7 @@
 
     <div class="actions">
       <button onclick="validarYPrevisualizar()">PREVISUALIZAR</button>
-      <button onclick="validarYDescargarPDF()" class="btn-success">DESCARGAR PDF</button>
-    </div>
-
-    <!-- BARRA DE ACCIONES PRINCIPALES -->
-    <div class="actions-bar">
-      <h3>🔧 GESTIÓN DE REMITOS</h3>
-      <button onclick="nuevoRemito()" class="btn-success" style="padding:12px 25px;">➕ NUEVO REMITO</button>
-      <button onclick="exportarBackup()" class="btn-warning" style="padding:12px 25px;">📤 EXPORTAR BACKUP</button>
+      <button onclick="validarYDescargarPDF()" class="btn-success" style="background:#4CAF50;">DESCARGAR PDF</button>
     </div>
 
     <div class="tab-container">
@@ -291,12 +276,13 @@
         <ul>
           <li>Los campos marcados con (*) son obligatorios.</li>
           <li>Formato detalle: <strong>Cantidad ; Unidad ; Descripción ; Estado</strong></li>
-          <li>N° de remito se genera automáticamente desde Google Sheets.</li>
-          <li><strong>Tipo de remito:</strong> Seleccioná ORIGINAL, DUPLICADO o TRIPLICADO antes de generar.</li>
-          <li><strong>Nuevo Remito:</strong> Obtiene el próximo número correlativo del servidor.</li>
-          <li><strong>Descargar PDF:</strong> Guarda automáticamente en Google Sheets y descarga el PDF.</li>
-          <li><strong>Exportar Backup:</strong> Descarga todos los remitos a archivo JSON.</li>
+          <li>N° de remito se genera automáticamente.</li>
+          <li>Seleccioná <strong>ORIGINAL, DUPLICADO o TRIPLICADO</strong> antes de generar.</li>
+          <li>El PDF se guarda automáticamente en Google Sheets al descargar.</li>
+          <li>Datos fijos SOLO en página 1. Tabla sola en páginas 2+.</li>
+          <li>Leyendas y firmas están en <strong>TODAS</strong> las páginas.</li>
           <li><strong>Autocompletado:</strong> Escriba 3 letras en "Conductor" o 2 en "Vehículo/Acoplado".</li>
+          <li><strong>Conductores:</strong> Al seleccionar un conductor, el DNI se completa automáticamente.</li>
         </ul>
       </div>
     </div>
@@ -308,146 +294,324 @@
 <div id="loading" class="loading-overlay">
   <div class="loading-content">
     <div class="spinner"></div>
-    <div>Procesando...</div>
+    <div>Generando PDF...</div>
     <div id="loadingStatus"></div>
+  </div>
+</div>
+
+<!-- MODAL EMPRESAS -->
+<div id="modalEmpresas" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 style="margin:0; color:#1a3c6e;">Gestión de Empresas (Multi-Domicilio)</h2>
+      <span class="close-modal" onclick="cerrarModalEmpresas()">&times;</span>
+    </div>
+    <div style="margin-bottom:15px;">
+      <button class="btn-cargar-actual" onclick="cargarDatosActualesEnModalEmpresas()">
+        📋 Cargar Datos del Remito Actual para Editar
+      </button>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+      <div>
+        <h3 style="color:#1a3c6e; border-bottom:2px solid #1a3c6e; padding-bottom:10px;">Agregar/Editar Empresa</h3>
+        <div style="margin-bottom:15px; padding:15px; background:#f0f0f0; border-radius:8px;">
+          <input type="text" id="newEmpresaRS" placeholder="Razón Social" style="margin-bottom:8px; font-size:13px;">
+          <input type="text" id="newEmpresaCUIT" placeholder="CUIT (opcional)" style="margin-bottom:8px; font-size:13px;">
+          <div style="margin-top:10px;">
+            <label style="font-size:12px; color:#555; margin-bottom:5px;">Domicilios:</label>
+            <div id="domiciliosContainer" class="domicilios-container"></div>
+            <button onclick="agregarCampoDomicilio()" class="btn-add-dom" style="padding:10px; font-size:14px; margin:10px 0 0 0;">+ Agregar Domicilio</button>
+          </div>
+          <button onclick="sistemaDatos.agregarEmpresaDesdeModal()" style="padding:10px 20px; font-size:14px; margin:15px 0 0 0; background:#4CAF50; width:100%;">Guardar Empresa</button>
+        </div>
+      </div>
+      <div>
+        <h3 style="color:#1a3c6e; border-bottom:2px solid #1a3c6e; padding-bottom:10px;">Empresas Guardadas</h3>
+        <div id="listaEmpresasModal" style="max-height:400px; overflow-y:auto;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONDUCTORES/VEHÍCULOS -->
+<div id="modalConductores" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 style="margin:0; color:#1a3c6e;">Gestión de Conductores y Vehículos</h2>
+      <span class="close-modal" onclick="cerrarModalConductores()">&times;</span>
+    </div>
+    <div style="margin-bottom:15px;">
+      <button class="btn-cargar-actual" onclick="cargarDatosActualesEnModalConductores()">
+        📋 Cargar Datos Actuales del Remito
+      </button>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+      <div>
+        <h3 style="color:#1a3c6e; border-bottom:2px solid #1a3c6e; padding-bottom:10px;">Conductores</h3>
+        <div id="listaConductoresModal"></div>
+      </div>
+      <div>
+        <h3 style="color:#1a3c6e; border-bottom:2px solid #1a3c6e; padding-bottom:10px;">Vehículos y Acoplados</h3>
+        <div id="listaVehiculosModal"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="templateContainer">
+  <div id="template">
+    <table width="100%" style="margin-bottom:15px; border-collapse:collapse;">
+      <tr>
+        <td width="35%" valign="top"><img id="logoPDF" src="" style="max-width:180px; max-height:90px; object-fit:contain; display:none;" crossorigin="anonymous"></td>
+        <td width="65%" align="center">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin:0; color:#1a3c6e; font-size:18pt; font-weight:bold;">
+            <span>REMITO INTERNO</span>
+            <span style="font-size:14pt; color:#4caf50; white-space:nowrap;" id="usuarioPDF"></span>
+          </div>
+          <h2 id="tipoPDF" style="margin:8px 0 0; color:#d32f2f; font-size:18pt;">ORIGINAL</h2>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2" style="text-align:right; font-weight:bold; padding-top:10px; font-size:13pt;">
+          N° <span id="numPDF"></span> - Fecha: <span id="fechaPDF"></span>
+        </td>
+      </tr>
+    </table>
+    <div id="seccionDatosOrigenDestino" style="border:3px double #1a3c6e; padding:20px; border-radius:10px; margin-bottom:15px;">
+      <table width="100%" style="border-collapse:collapse;">
+        <tr>
+          <td width="50%" style="border:1px solid #000; padding:12px;">
+            Razón Social: <span id="origenRSp"></span><br>
+            Domicilio: <span id="origenDomp"></span><br>
+            CUIT: <span id="origenCUITp"></span>
+          </td>
+          <td width="50%" style="border:1px solid #000; padding:12px;">
+            Razón Social: <span id="destinoRSp"></span><br>
+            Domicilio: <span id="destinoDomp"></span>
+          </td>
+        </tr>
+      </table>
+      <table width="100%" style="border-collapse:collapse; margin-top:15px;">
+        <tr>
+          <td width="50%" style="border:1px solid #000; padding:12px;">
+            <b>Datos del Transporte</b><br>
+            Conductor: <span id="conductorp"></span>, DNI: <span id="dnip"></span><br>
+            Vehiculo: <span id="vehiculop"></span> / Acoplado: <span id="acopladop"></span>
+          </td>
+          <td width="50%" style="border:1px solid #000; padding:12px;">
+            <b>Datos del Traslado</b><br>
+            Partida: <span id="origenDomp2"></span><br>
+            Destino: <span id="destinoDomp2"></span>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <h3 style="color:#1a3c6e; margin-bottom:10px;">DETALLE DE LOS BIENES</h3>
+    <table width="100%" border="1" cellpadding="0" cellspacing="0" style="border-collapse:collapse; border:1px solid #000;">
+      <thead>
+        <tr style="background:#1a3c6e; color:white;">
+          <th style="padding:8px;">CANTIDAD</th>
+          <th style="padding:8px;">UNIDAD</th>
+          <th style="padding:8px;">BIENES</th>
+          <th style="padding:8px;">ESTADO</th>
+        </tr>
+      </thead>
+      <tbody id="bienesPDF"></tbody>
+    </table>
+    <div class="firma-fija">
+      <div style="margin:20px 0; padding:15px; background:#fff8e1; border-left:6px solid #ffb300; font-size:11pt;">
+        <b>TRASLADO INTERNO DE BIENES (MAQUINARIA, EQUIPOS, CAMIONES Y/O INSUMOS) – NO CONSTITUYE TRANSFERENCIA DE DOMINIO – ART. 26 RG 3358/2012 Y MODIFICATORIAS.</b>
+      </div>
+      <div style="text-align:center; color:#d32f2f; font-size:16pt; font-weight:bold; margin:20px 0;">
+        DOCUMENTO NO VÁLIDO COMO FACTURA
+      </div>
+      <div style="margin-top:30px;">
+        <table width="100%">
+          <tr>
+            <td style="text-align:center; width:50%; padding-bottom:10px; vertical-align:top;">
+              <div style="border-bottom:1px solid #000; margin:0 auto 5px; width:80%; height:40px;"></div>
+              <b>FIRMA DEL CONDUCTOR</b><br><span id="nombreConductorPDF"></span>
+              <div id="fechaFirmaConductorPDF" style="margin-top:5px;"></div>
+            </td>
+            <td style="text-align:center; width:50%; padding-bottom:10px; vertical-align:top;">
+              <div style="border-bottom:1px solid #000; margin:0 auto 5px; width:80%; height:40px;"></div>
+              <b>FIRMA DEL RECEPTOR</b><br><span id="nombreReceptorPDF"></span>
+              <div id="fechaFirmaReceptorPDF" style="margin-top:5px;"></div>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
 /* 
-=============================================================================
+================================================================================
 CONFIGURACIÓN - GOOGLE APPS SCRIPT
-=============================================================================
-REEMPLAZAR ESTA URL CON TU PROPIA URL DE GOOGLE APPS SCRIPT
-
-Cómo obtener la URL:
-1. Crear Google Sheet con hojas "Numeracion" y "Remitos"
-2. Extensiones > Apps Script
-3. Crear archivo Code.gs con las funciones del instructivo
-4. Publicar > Deploy as web app
-5. Copiar la URL aquí
-
-URL de ejemplo (REEMPLAZAR):
-  const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbxxxxxx/dev';
-=============================================================================
+================================================================================
 */
 const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbyHFZFCFmfgGpkFHo8OOxTeu6KvifOrjGJXphv72eamCHFO9ZpSsG_gl7JN6t9RriWq/exec';
 
-// ==========================================================================
-// VARIABLES GLOBALES
-// ==========================================================================
-const FILAS_PAGINA_1 = 4;
-const FILAS_PAGINA_SIGUIENTE = 14;
-let logoURL = "";
-let numeracionSistema = { ultimoNumero: 0, añoActual: new Date().getFullYear(), isGenerating: false };
-let domiciliosEnEdicion = [];
 let servidorOnline = false;
-let sistemaDatos;
 let tipoDocumento = 'ORIGINAL';
 
-// ==========================================================================
-// VERIFICACIÓN DE CONEXIÓN
-// ==========================================================================
 async function verificarServidor() {
   try {
     const url = `${GAS_BASE_URL}?action=getNextRemito&usuario=TEST`;
-    console.log('Verificando servidor:', url);
-    const response = await fetch(url, { 
-      method: 'GET',
-      redirect: 'follow'
-    });
-    console.log('Respuesta:', response.status, response.statusText);
+    const response = await fetch(url, { method: 'GET', redirect: 'follow' });
     servidorOnline = response.ok || response.status === 302;
-    actualizarIndicadorServidor();
-  } catch (e) {
-    console.log('Servidor offline:', e.message);
+    const statusEl = document.getElementById('serverStatus');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    if (statusEl) {
+      statusEl.style.display = servidorOnline ? 'block' : 'none';
+      if (statusDot) {
+        statusDot.className = 'server-status ' + (servidorOnline ? 'online' : 'offline');
+      }
+      if (statusText) {
+        statusText.textContent = servidorOnline ? '✓ Conectado a Google Sheets' : '✗ Sin conexión';
+      }
+    }
+  } catch (e) { 
     servidorOnline = false;
-    actualizarIndicadorServidor();
   }
 }
 
-function actualizarIndicadorServidor() {
-  const dot = document.getElementById('statusDot');
-  const text = document.getElementById('statusText');
-  const numDot = document.getElementById('numStatusDot');
-  const numText = document.getElementById('numStatusText');
-  
-  if (dot) dot.className = 'server-status ' + (servidorOnline ? 'online' : 'offline');
-  if (text) text.textContent = servidorOnline ? 'Servidor online (Google Sheets)' : 'Servidor offline - modo local';
-  if (numDot) numDot.className = 'server-status ' + (servidorOnline ? 'online' : 'offline');
-  if (numText) numText.textContent = servidorOnline ? 'Conectado a Google Sheets' : 'Modo offline - numeración local';
+async function guardarEnGoogleSheets(datosRemito) {
+  try {
+    const response = await fetch(GAS_BASE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'guardarRemito',
+        datos: datosRemito
+      }),
+      redirect: 'follow'
+    });
+    const result = await response.text();
+    return { success: true, message: result };
+  } catch (error) {
+    console.error('Error guardando en Google Sheets:', error);
+    return { success: false, message: error.message };
+  }
 }
 
-// ==========================================================================
-// CLASE SISTEMA DE DATOS (LOCALSTORAGE)
-// ==========================================================================
+async function obtenerProximoNumero(usuario) {
+  try {
+    const url = `${GAS_BASE_URL}?action=getNextRemito&usuario=${encodeURIComponent(usuario)}`;
+    const response = await fetch(url, { method: 'GET', redirect: 'follow' });
+    const text = await response.text();
+    return text;
+  } catch (error) {
+    console.error('Error obteniendo número:', error);
+    return null;
+  }
+}
+
+// === CONFIGURACIÓN DE PAGINACIÓN ===
+const FILAS_PAGINA_1 = 4;
+const FILAS_PAGINA_SIGUIENTE = 14;
+
+let logoURL = "";
+let numeracionSistema = { ultimoNumero: 0, añoActual: new Date().getFullYear(), isGenerating: false };
+let domiciliosEnEdicion = [];
+let domicilioEnEdicion = [];
+
+// === SISTEMA DE AUTOCOMPLETADO ===
 class SistemaDatos {
   constructor() {
     this.storageKeys = {
       empresas: 'empresas_hormiserv_v4',
       usuario: 'usuario_activo_hormiserv',
       conductores: 'conductores_hormiserv_v1',
-      vehiculos: 'vehiculos_hormiserv_v1',
-      remitos: 'remitos_locales_hormiserv'
+      vehiculos: 'vehiculos_hormiserv_v1'
     };
-    this.datos = { empresas: [], usuario: '', conductores: [], vehiculos: [], remitosLocales: [] };
+    this.datos = { empresas: [], usuario: '', conductores: [], vehiculos: [] };
     this.cargarTodosLosDatos();
     this.inicializarEventos();
     this.inicializarAutocompletado();
   }
   
   cargarTodosLosDatos() {
-    try { this.datos.usuario = localStorage.getItem(this.storageKeys.usuario) || ''; } catch(e) {}
-    
+    try { this.datos.usuario = localStorage.getItem(this.storageKeys.usuario) || ''; } catch(e) { this.datos.usuario = ''; }
     try {
-      const emp = JSON.parse(localStorage.getItem(this.storageKeys.empresas)) || [];
-      this.datos.empresas = emp.map(e => Array.isArray(e.domicilios) ? e : {...e, domicilio: e.domicilio || ''});
+      const empresasGuardadas = JSON.parse(localStorage.getItem(this.storageKeys.empresas)) || [];
+      this.datos.empresas = empresasGuardadas.map(emp => {
+        if (Array.isArray(emp.domicilios)) return emp;
+        return { ...emp, domicilio: emp.domicilio || '', domicilio2: emp.domicilio2 || '', domicilio3: emp.domicilio3 || '', domicilios: [emp.domicilio || '', emp.domicilio2 || '', emp.domicilio3 || ''].filter(d => d && d.trim()) };
+      });
     } catch(e) { this.datos.empresas = []; }
-    
     try {
-      const cond = JSON.parse(localStorage.getItem(this.storageKeys.conductores));
-      this.datos.conductores = (cond && cond.length > 0) ? cond : this.getConductoresDefault();
+      const condGuardados = JSON.parse(localStorage.getItem(this.storageKeys.conductores));
+      this.datos.conductores = (condGuardados && condGuardados.length > 0) ? condGuardados : this.getConductoresDefault();
     } catch(e) { this.datos.conductores = this.getConductoresDefault(); }
-    
     try {
-      const veh = JSON.parse(localStorage.getItem(this.storageKeys.vehiculos));
-      this.datos.vehiculos = (veh && veh.length > 0) ? veh : this.getVehiculosDefault();
+      const vehGuardados = JSON.parse(localStorage.getItem(this.storageKeys.vehiculos));
+      this.datos.vehiculos = (vehGuardados && vehGuardados.length > 0) ? vehGuardados : this.getVehiculosDefault();
     } catch(e) { this.datos.vehiculos = this.getVehiculosDefault(); }
-    
-    try {
-      this.datos.remitosLocales = JSON.parse(localStorage.getItem(this.storageKeys.remitos)) || [];
-    } catch(e) { this.datos.remitosLocales = []; }
-    
     this.mostrarUsuarioActivo();
     this.generarDatalists();
   }
   
-  getConductoresDefault() { return [{nombre:'SANTIAGO MUÑOZ', dni:'33.765.886', timestamp:Date.now()}]; }
-  getVehiculosDefault() { return [{patente:'AF878MF', tipo:'Camión', timestamp:Date.now()}, {patente:'AF512IW', tipo:'Acoplado', timestamp:Date.now()}]; }
+  getConductoresDefault() { return [{ nombre: 'SANTIAGO MUÑOZ', dni: '33.765.886', timestamp: Date.now() }, { nombre: 'JUAN PEREZ', dni: '25.456.123', timestamp: Date.now() }, { nombre: 'MARIA GONZALEZ', dni: '30.123.456', timestamp: Date.now() }]; }
+  getVehiculosDefault() { return [{ patente: 'AF878MF', tipo: 'Camión', timestamp: Date.now() }, { patente: 'AF512IW', tipo: 'Acoplado', timestamp: Date.now() }, { patente: 'AB123CD', tipo: 'Camión', timestamp: Date.now() }, { patente: 'AC456EF', tipo: 'Acoplado', timestamp: Date.now() }]; }
   
   guardarEmpresas() { localStorage.setItem(this.storageKeys.empresas, JSON.stringify(this.datos.empresas)); }
   guardarUsuario() { localStorage.setItem(this.storageKeys.usuario, this.datos.usuario); }
   guardarConductores() { localStorage.setItem(this.storageKeys.conductores, JSON.stringify(this.datos.conductores)); }
   guardarVehiculos() { localStorage.setItem(this.storageKeys.vehiculos, JSON.stringify(this.datos.vehiculos)); }
-  guardarRemitosLocales() { localStorage.setItem(this.storageKeys.remitos, JSON.stringify(this.datos.remitosLocales)); }
   
-  setUsuario(usuario) {
-    this.datos.usuario = usuario.trim();
-    this.guardarUsuario();
-    this.mostrarUsuarioActivo();
-  }
+  setUsuario(usuario) { this.datos.usuario = usuario.trim(); this.guardarUsuario(); this.mostrarUsuarioActivo(); }
+  limpiarUsuario() { this.datos.usuario = ''; localStorage.removeItem(this.storageKeys.usuario); this.mostrarUsuarioActivo(); }
   
   mostrarUsuarioActivo() {
     const display = document.getElementById('usuarioActivoDisplay');
     const input = document.getElementById('usuarioConfig');
     if (this.datos.usuario) {
-      if (display) { display.textContent = `USUARIO ACTIVO: ${this.datos.usuario}`; display.style.display = 'block'; }
+      display.textContent = `USUARIO ACTIVO: ${this.datos.usuario}`;
+      display.style.display = 'block';
       if (input) input.value = this.datos.usuario;
     } else {
-      if (display) display.style.display = 'none';
+      display.style.display = 'none';
       if (input) input.value = '';
     }
   }
+  
+  agregarConductor(nombre, dni) {
+    if (!nombre || !nombre.trim()) return false;
+    const idx = this.datos.conductores.findIndex(c => c.nombre.toUpperCase() === nombre.toUpperCase());
+    const conductor = { nombre: nombre.trim().toUpperCase(), dni: dni ? dni.trim().toUpperCase() : '', timestamp: Date.now() };
+    if (idx !== -1) this.datos.conductores[idx] = conductor; else this.datos.conductores.unshift(conductor);
+    if (this.datos.conductores.length > 30) this.datos.conductores = this.datos.conductores.slice(0, 30);
+    this.guardarConductores(); return true;
+  }
+  
+  eliminarConductor(nombre) { this.datos.conductores = this.datos.conductores.filter(c => c.nombre.toUpperCase() !== nombre.toUpperCase()); this.guardarConductores(); }
+  buscarConductores(query) { if (!query || query.length < 3) return []; return this.datos.conductores.filter(c => c.nombre.includes(query.toUpperCase())).slice(0, 5); }
+  
+  agregarVehiculo(patente, tipo = 'Camión') {
+    if (!patente || !patente.trim()) return false;
+    const idx = this.datos.vehiculos.findIndex(v => v.patente.toUpperCase() === patente.toUpperCase());
+    const vehiculo = { patente: patente.trim().toUpperCase(), tipo: tipo, timestamp: Date.now() };
+    if (idx !== -1) this.datos.vehiculos[idx] = vehiculo; else this.datos.vehiculos.unshift(vehiculo);
+    if (this.datos.vehiculos.length > 30) this.datos.vehiculos = this.datos.vehiculos.slice(0, 30);
+    this.guardarVehiculos(); return true;
+  }
+  
+  eliminarVehiculo(patente) { this.datos.vehiculos = this.datos.vehiculos.filter(v => v.patente.toUpperCase() !== patente.toUpperCase()); this.guardarVehiculos(); }
+  buscarVehiculos(query, tipoFiltro = 'todos') { if (!query || query.length < 2) return []; return this.datos.vehiculos.filter(v => v.patente.includes(query.toUpperCase()) && (tipoFiltro === 'todos' || v.tipo === tipoFiltro)).slice(0, 5); }
+  
+  agregarEmpresa(razonSocial, domicilios = [], cuit = '') {
+    if (!razonSocial || !razonSocial.trim()) return false;
+    const idx = this.datos.empresas.findIndex(e => e.razonSocial.toUpperCase() === razonSocial.toUpperCase());
+    const empresa = { razonSocial: razonSocial.trim(), domicilios: Array.isArray(domicilios) ? domicilios : [domicilios], cui:cuit?cuit.trim():'', timestamp:Date.now(), usuario:this.datos.usuario||'SIN_USUARIO' };
+    if (idx !== -1) this.datos.empresas[idx] = empresa; else this.datos.empresas.unshift(empresa);
+    if (this.datos.empresas.length > 50) this.datos.empresas = this.datos.empresas.slice(0, 50);
+    this.guardarEmpresas(); this.generarDatalists(); return true;
+  }
+  
+  eliminarEmpresa(razonSocial) { this.datos.empresas = this.datos.empresas.filter(e => e.razonSocial.toUpperCase() !== razonSocial.toUpperCase()); this.guardarEmpresas(); this.generarDatalists(); }
   
   inicializarAutocompletado() {
     this.setupAutocomplete('conductor', 'conductorList', 3, 'conductor');
@@ -459,19 +623,15 @@ class SistemaDatos {
     const input = document.getElementById(inputId);
     const list = document.getElementById(listId);
     if (!input || !list) return;
-    
     let selectedIndex = -1;
     input.addEventListener('input', (e) => {
       const query = e.target.value;
       selectedIndex = -1;
       if (query.length >= minChars) {
-        let resultados = tipo === 'conductor' ? this.buscarConductores(query) : this.buscarVehiculos(query, tipo === 'acoplado' ? 'Acoplado' : 'todos');
+        const resultados = tipo === 'conductor' ? this.buscarConductores(query) : this.buscarVehiculos(query, tipo === 'acoplado' ? 'Acoplado' : 'todos');
         this.mostrarLista(resultados, list, input, tipo);
-      } else {
-        list.style.display = 'none';
-      }
+      } else { list.style.display = 'none'; }
     });
-    
     input.addEventListener('keydown', (e) => {
       const divs = list.querySelectorAll('.autocomplete-item');
       if (e.key === 'ArrowDown') { e.preventDefault(); selectedIndex = Math.min(selectedIndex + 1, divs.length - 1); this.updateSelection(divs, selectedIndex); }
@@ -479,7 +639,6 @@ class SistemaDatos {
       else if (e.key === 'Enter') { e.preventDefault(); if (selectedIndex >= 0 && divs[selectedIndex]) divs[selectedIndex].click(); }
       else if (e.key === 'Escape') { list.style.display = 'none'; selectedIndex = -1; }
     });
-    
     document.addEventListener('click', (e) => { if (!input.contains(e.target) && !list.contains(e.target)) list.style.display = 'none'; });
   }
   
@@ -492,13 +651,7 @@ class SistemaDatos {
       div.className = 'autocomplete-item';
       if (tipo === 'conductor') {
         div.innerHTML = `<strong>${this.resaltarTexto(item.nombre, query)}</strong><small>DNI: ${item.dni}</small>`;
-        div.addEventListener('click', () => {
-          input.value = item.nombre;
-          document.getElementById('dni').value = item.dni;
-          document.getElementById('nombreConductor').value = item.nombre;
-          list.style.display = 'none';
-          this.agregarConductor(item.nombre, item.dni);
-        });
+        div.addEventListener('click', () => { input.value = item.nombre; document.getElementById('dni').value = item.dni; document.getElementById('nombreConductor').value = item.nombre; list.style.display = 'none'; this.agregarConductor(item.nombre, item.dni); });
       } else {
         div.innerHTML = `<strong>${this.resaltarTexto(item.patente, query)}</strong><small>${item.tipo}</small>`;
         div.addEventListener('click', () => { input.value = item.patente; list.style.display = 'none'; this.agregarVehiculo(item.patente, item.tipo); });
@@ -508,44 +661,8 @@ class SistemaDatos {
     list.style.display = 'block';
   }
   
-  resaltarTexto(texto, query) {
-    if (!query) return texto;
-    return texto.replace(new RegExp(`(${query})`, 'gi'), '<span class="autocomplete-highlight">$1</span>');
-  }
-  
-  updateSelection(divs, index) {
-    divs.forEach((div, i) => { if (i === index) div.classList.add('selected'); else div.classList.remove('selected'); });
-  }
-  
-  buscarConductores(query) {
-    if (!query || query.length < 3) return [];
-    return this.datos.conductores.filter(c => c.nombre.includes(query.toUpperCase())).slice(0, 5);
-  }
-  
-  buscarVehiculos(query, tipoFiltro) {
-    if (!query || query.length < 2) return [];
-    return this.datos.vehiculos.filter(v => v.patente.includes(query.toUpperCase()) && (tipoFiltro === 'todos' || v.tipo === tipoFiltro)).slice(0, 5);
-  }
-  
-  agregarConductor(nombre, dni) {
-    if (!nombre || !nombre.trim()) return false;
-    const idx = this.datos.conductores.findIndex(c => c.nombre.toUpperCase() === nombre.toUpperCase());
-    const conductor = { nombre: nombre.trim().toUpperCase(), dni: dni ? dni.trim().toUpperCase() : '', timestamp: Date.now() };
-    if (idx !== -1) this.datos.conductores[idx] = conductor; else this.datos.conductores.unshift(conductor);
-    if (this.datos.conductores.length > 30) this.datos.conductores = this.datos.conductores.slice(0, 30);
-    this.guardarConductores();
-    return true;
-  }
-  
-  agregarVehiculo(patente, tipo) {
-    if (!patente || !patente.trim()) return false;
-    const idx = this.datos.vehiculos.findIndex(v => v.patente.toUpperCase() === patente.toUpperCase());
-    const vehiculo = { patente: patente.trim().toUpperCase(), tipo: tipo, timestamp: Date.now() };
-    if (idx !== -1) this.datos.vehiculos[idx] = vehiculo; else this.datos.vehiculos.unshift(vehiculo);
-    if (this.datos.vehiculos.length > 30) this.datos.vehiculos = this.datos.vehiculos.slice(0, 30);
-    this.guardarVehiculos();
-    return true;
-  }
+  resaltarTexto(texto, query) { if (!query) return texto; return texto.replace(new RegExp(`(${query})`, 'gi'), '<span class="autocomplete-highlight">$1</span>'); }
+  updateSelection(divs, index) { divs.forEach((div, i) => { if (i === index) div.classList.add('selected'); else div.classList.remove('selected'); }); }
   
   generarDatalists() {
     const origenDL = document.getElementById('listaOrigenRS');
@@ -553,13 +670,7 @@ class SistemaDatos {
     if (!origenDL || !destinoDL) return;
     const opciones = [...new Set(this.datos.empresas.map(e => e.razonSocial))];
     const html = opciones.map(val => `<option value="${val}">`).join('');
-    origenDL.innerHTML = html;
-    destinoDL.innerHTML = html;
-  }
-  
-  inicializarEventos() {
-    document.getElementById('origenRS')?.addEventListener('blur', () => this.actualizarSelectorsDomicilio('origen'));
-    document.getElementById('destinoRS')?.addEventListener('blur', () => this.actualizarSelectorsDomicilio('destino'));
+    origenDL.innerHTML = html; destinoDL.innerHTML = html;
   }
   
   actualizarSelectorsDomicilio(origenDestino) {
@@ -567,300 +678,303 @@ class SistemaDatos {
     const select = document.getElementById(`${origenDestino}DomSelect`);
     const input = document.getElementById(`${origenDestino}Dom`);
     if (!rsInput || !select || !input) return;
-    
     const empresa = this.datos.empresas.find(e => e.razonSocial.toUpperCase() === rsInput.value.toUpperCase());
     select.innerHTML = '<option value="">Seleccionar domicilio...</option>';
-    
     if (empresa && empresa.domicilios && empresa.domicilios.length > 0) {
       empresa.domicilios.forEach((dom, index) => {
-        if (dom.trim()) {
-          const option = document.createElement('option');
-          option.value = dom;
-          option.textContent = `${index + 1}: ${dom.substring(0, 60)}${dom.length > 60 ? '...' : ''}`;
-          select.appendChild(option);
-        }
+        if (dom && dom.trim()) { const option = document.createElement('option'); option.value = dom; option.textContent = `${index + 1}: ${dom.substring(0, 60)}${dom.length > 60 ? '...' : ''}`; select.appendChild(option); }
       });
       if (!input.value && empresa.domicilios[0]) input.value = empresa.domicilios[0];
     }
   }
+  
+  inicializarEventos() {
+    document.getElementById('origenRS')?.addEventListener('blur', () => this.actualizarSelectorsDomicilio('origen'));
+    document.getElementById('destinoRS')?.addEventListener('blur', () => this.actualizarSelectorsDomicilio('destino'));
+  }
+  
+  mostrarModalEmpresas() { const modal = document.getElementById('modalEmpresas'); if (modal) { domicilioEnEdicion = ['']; renderizarDomiciliosEdicion(); modal.style.display = 'block'; this.renderizarListaEmpresas(); } }
+  cerrarModalEmpresas() { const modal = document.getElementById('modalEmpresas'); if (modal) modal.style.display = 'none'; }
+  mostrarModalConductores() { const modal = document.getElementById('modalConductores'); if (modal) { modal.style.display = 'block'; this.renderizarListaConductores(); this.renderizarListaVehiculos(); } }
+  cerrarModalConductores() { const modal = document.getElementById('modalConductores'); if (modal) modal.style.display = 'none'; }
+  
+  renderizarListaEmpresas() {
+    const container = document.getElementById('listaEmpresasModal');
+    if (!container) return;
+    if (this.datos.empresas.length === 0) { container.innerHTML = '<p style="color:#666; font-size:13px; text-align:center;">No hay empresas guardadas.</p>'; return; }
+    container.innerHTML = this.datos.empresas.map((emp, idx) => `
+      <div class="empresa-item" style="padding:12px; margin:8px 0;">
+        <strong style="font-size:14px; color:#1a3c6e;">${emp.razonSocial}</strong>
+        <div style="font-size:12px; color:#666; margin:5px 0;">CUIT: ${emp.cuit || 'No especificado'}</div>
+        <div style="margin:8px 0; padding:8px; background:#f5f5f5; border-radius:4px;">
+          <div style="font-size:11px; font-weight:bold; margin-bottom:5px; color:#333;">Domicilios (${emp.domicilios ? emp.domicilios.length : 0}):</div>
+          ${emp.domicilios ? emp.domicilios.map((d, i) => `<div style="font-size:11px; color:#555; margin-left:10px;">${i+1}. ${d}</div>`).join('') : '<div style="font-size:11px; color:#999; font-style:italic;">Sin domicilios</div>'}
+        </div>
+        <div class="empresa-actions" style="margin-top:10px;">
+          <button onclick="sistemaDatos.cargarEmpresaEnEdicion(${idx})" style="padding:6px 12px; font-size:12px;">Editar</button>
+          <button onclick="if(confirm('¿Eliminar?')) { sistemaDatos.eliminarEmpresa('${emp.razonSocial}'); sistemaDatos.renderizarListaEmpresas(); }" style="background:#f44336; padding:6px 12px; font-size:12px;">Eliminar</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  
+  cargarEmpresaEnEdicion(index) {
+    const emp = this.datos.empresas[index];
+    if (!emp) return;
+    document.getElementById('newEmpresaRS').value = emp.razonSocial;
+    document.getElementById('newEmpresaCUIT').value = emp.cuit || '';
+    domicilioEnEdicion = [...(emp.domicilios || [])];
+    if (domicilioEnEdicion.length === 0) domicilioEnEdicion = [''];
+    renderizarDomiciliosEdicion();
+  }
+  
+  agregarEmpresaDesdeModal() {
+    const rs = document.getElementById('newEmpresaRS')?.value;
+    const cuit = document.getElementById('newEmpresaCUIT')?.value;
+    const domicilioInputs = document.querySelectorAll('.domicilio-input');
+    const domicilios = Array.from(domicilioInputs).map(i => i.value.trim()).filter(v => v);
+    if (!rs?.trim()) { alert('⚠️ Ingrese una Razón Social'); return; }
+    if (domicilios.length === 0) { alert('⚠️ Ingrese al menos un domicilio'); return; }
+    if (this.agregarEmpresa(rs,domicilios,cuit)) { this.renderizarListaEmpresas(); document.getElementById('newEmpresaRS').value=''; document.getElementById('newEmpresaCUIT').value=''; domicilioEnEdicion=['']; renderizarDomiciliosEdicion(); mostrarNotificacionExito('Empresa guardada correctamente'); }
+  }
+  
+  renderizarListaConductores() {
+    const container = document.getElementById('listaConductoresModal');
+    if (!container) return;
+    let html = `<div style="margin-bottom:15px; padding:10px; background:#f0f0f0; border-radius:8px;">
+      <input type="text" id="newCondNombre" placeholder="Nombre conductor" style="margin-bottom:5px; font-size:13px;">
+      <input type="text" id="newCondDNI" placeholder="DNI" style="margin-bottom:5px; font-size:13px;">
+      <button onclick="sistemaDatos.agregarConductorDesdeModal()" style="padding:6px 12px; font-size:12px; margin:0;">Agregar</button>
+    </div>`;
+    this.datos.conductores.forEach((c, index) => {
+      html += `<div class="empresa-item" style="padding:10px;"><strong style="font-size:13px;">${c.nombre}</strong><br><small style="font-size:11px;">DNI: ${c.dni}</small><div class="empresa-actions" style="margin-top:5px;"><button onclick="sistemaDatos.editarConductor(${index})" style="padding:4px 8px; font-size:11px;">Editar</button><button onclick="if(confirm('¿Eliminar?')) { sistemaDatos.eliminarConductor('${c.nombre}'); sistemaDatos.renderizarListaConductores(); }" style="background:#f44336; padding:4px 8px; font-size:11px;">Eliminar</button></div></div>`;
+    });
+    container.innerHTML = html || '<p style="color:#666; font-size:13px;">No hay conductores.</p>';
+  }
+  
+  renderizarListaVehiculos() {
+    const container = document.getElementById('listaVehiculosModal');
+    if (!container) return;
+    let html = `<div style="margin-bottom:15px; padding:10px; background:#f0f0f0; border-radius:8px;">
+      <input type="text" id="newVehPatente" placeholder="Patente" style="margin-bottom:5px; font-size:13px;">
+      <select id="newVehTipo" style="margin-bottom:5px; font-size:13px;"><option value="Camión">Camión</option><option value="Acoplado">Acoplado</option></select>
+      <button onclick="sistemaDatos.agregarVehiculoDesdeModal()" style="padding:6px 12px; font-size:12px; margin:0;">Agregar</button>
+    </div>`;
+    this.datos.vehiculos.forEach((v, index) => {
+      html += `<div class="empresa-item" style="padding:10px;"><strong style="font-size:13px;">${v.patente}</strong><br><small style="font-size:11px;">${v.tipo}</small><div class="empresa-actions" style="margin-top:5px;"><button onclick="sistemaDatos.editarVehiculo(${index})" style="padding:4px 8px; font-size:11px;">Editar</button><button onclick="if(confirm('¿Eliminar?')) { sistemaDatos.eliminarVehiculo('${v.patente}'); sistemaDatos.renderizarListaVehiculos(); }" style="background:#f44336; padding:4px 8px; font-size:11px;">Eliminar</button></div></div>`;
+    });
+    container.innerHTML = html || '<p style="color:#666; font-size:13px;">No hay vehículos.</p>';
+  }
+  
+  agregarConductorDesdeModal() {
+    const nombre = document.getElementById('newCondNombre')?.value;
+    const dni = document.getElementById('newCondDNI')?.value;
+    if (this.agregarConductor(nombre, dni)) { this.renderizarListaConductores(); document.getElementById('newCondNombre').value=''; document.getElementById('newCondDNI').value=''; }
+  }
+  
+  agregarVehiculoDesdeModal() {
+    const patente = document.getElementById('newVehPatente')?.value;
+    const tipo = document.getElementById('newVehTipo')?.value;
+    if (this.agregarVehiculo(patente, tipo)) { this.renderizarListaVehiculos(); document.getElementById('newVehPatente').value=''; }
+  }
+  
+  editarConductor(index) {
+    const c = this.datos.conductores[index];
+    const nuevoNombre = prompt('Nombre:', c.nombre);
+    if (nuevoNombre === null) return;
+    const nuevoDNI = prompt('DNI:', c.dni);
+    if (nuevoDNI === null) return;
+    this.datos.conductores[index].nombre = nuevoNombre.trim().toUpperCase();
+    this.datos.conductores[index].dni = nuevoDNI.trim();
+    this.guardarConductores();
+    this.renderizarListaConductores();
+  }
+  
+  editarVehiculo(index) {
+    const v = this.datos.vehiculos[index];
+    const nuevaPatente = prompt('Patente:', v.patente);
+    if (nuevaPatente === null) return;
+    const nuevoTipo = prompt('Tipo (Camión/Acoplado):', v.tipo);
+    if (nuevoTipo === null) return;
+    this.datos.vehiculos[index].patente = nuevaPatente.trim().toUpperCase();
+    this.datos.vehiculos[index].tipo = nuevoTipo.trim();
+    this.guardarVehiculos();
+    this.renderizarListaVehiculos();
+  }
 }
 
-// ==========================================================================
-// NÚMERACIÓN Y REMITOS VIA GOOGLE APPS SCRIPT
-// ==========================================================================
+let sistemaDatos;
 
-async function nuevoRemito() {
-  await cargarNumeroRemitoServer();
+function renderizarDomiciliosEdicion() {
+  const container = document.getElementById('domiciliosContainer');
+  if (!container) return;
+  container.innerHTML = '';
+  domicilioEnEdicion.forEach((dom, index) => {
+    const row = document.createElement('div');
+    row.className = 'domicilio-row';
+    row.innerHTML = `<input type="text" class="domicilio-input" value="${dom}" placeholder="Domicilio ${index + 1}" style="flex:1;"><button onclick="moverDomicilio(${index}, -1)" ${index===0?'disabled':''} class="btn-move-dom" title="Subir">↑</button><button onclick="moverDomicilio(${index}, 1)" ${index===domicilioEnEdicion.length-1?'disabled':''} class="btn-move-dom" title="Bajar">↓</button><button onclick="eliminarDomicilio(${index})" class="btn-remove-dom" title="Eliminar">×</button>`;
+    container.appendChild(row);
+  });
+}
+
+function agregarCampoDomicilio() { domicilioEnEdicion.push(''); renderizarDomiciliosEdicion(); }
+function eliminarDomicilio(index) { if (domicilioEnEdicion.length > 1) { domicilioEnEdicion.splice(index, 1); renderizarDomiciliosEdicion(); } else { domicilioEnEdicion[index] = ''; renderizarDomiciliosEdicion(); } }
+function moverDomicilio(index, direccion) { const newIndex = index + direccion; if (newIndex >= 0 && newIndex < domicilioEnEdicion.length) { [domicilioEnEdicion[index], domicilioEnEdicion[newIndex]] = [domicilioEnEdicion[newIndex], domicilioEnEdicion[index]]; renderizarDomiciliosEdicion(); } }
+
+function guardarConfigUsuario() { const input = document.getElementById('usuarioConfig'); if (!input?.value.trim()) { alert('⚠️ Ingrese un nombre de usuario/oficina válido'); return; } sistemaDatos.setUsuario(input.value.trim()); mostrarNotificacionExito(`✅ Usuario guardado: ${input.value.trim()}`); cargarNumeroRemito(); }
+function limpiarConfigUsuario() { if (!confirm('¿Borrar configuración de usuario?')) return; sistemaDatos.limpiarUsuario(); mostrarNotificacionExito('Usuario eliminado'); cargarNumeroRemito(); }
+function mostrarModalEmpresas() { sistemaDatos.mostrarModalEmpresas(); }
+function cerrarModalEmpresas() { sistemaDatos.cerrarModalEmpresas(); }
+function mostrarModalConductores() { sistemaDatos.mostrarModalConductores(); }
+function cerrarModalConductores() { sistemaDatos.cerrarModalConductores(); }
+function cargarDatosActualesEnModalEmpresas() {
+  const origenRS = document.getElementById('origenRS')?.value;
+  const origenDom = document.getElementById('origenDom')?.value;
+  const origenCUIT = document.getElementById('origenCUIT')?.value;
+  const destinoDom = document.getElementById('destinoDom')?.value;
+  if (!origenRS?.trim()) { alert('⚠️ Ingrese una Razón Social primero'); return; }
+  const empresaExistente = sistemaDatos.datos.empresas.find(e => e.razonSocial.toUpperCase() === origenRS.toUpperCase());
+  if (empresaExistente) { document.getElementById('newEmpresaRS').value = empresaExistente.razonSocial; document.getElementById('newEmpresaCUIT').value = empresaExistente.cuit || ''; domicilioEnEdicion = [...(empresaExistente.domicilios || [])]; if (origenDom && !domicilioEnEdicion.includes(origenDom)) domicilioEnEdicion.push(origenDom); if (destinoDom && destinoDom !== origenDom && !domicilioEnEdicion.includes(destinoDom)) domicilioEnEdicion.push(destinoDom); }
+  else { document.getElementById('newEmpresaRS').value = origenRS; document.getElementById('newEmpresaCUIT').value = origenCUIT || ''; domicilioEnEdicion = []; if (origenDom) domicilioEnEdicion.push(origenDom); if (destinoDom && destinoDom !== origenDom) domicilioEnEdicion.push(destinoDom); if (domicilioEnEdicion.length === 0) domicilioEnEdicion = ['']; }
+  renderizarDomiciliosEdicion();
+  mostrarNotificacionExito('Datos cargados en el formulario');
+}
+function cargarDatosActualesEnModalConductores() {
+  const conductor = document.getElementById('conductor')?.value;
+  const dni = document.getElementById('dni')?.value;
+  const vehiculo = document.getElementById('vehiculo')?.value;
+  const acoplado = document.getElementById('acoplado')?.value;
+  if (conductor?.trim()) sistemaDatos.agregarConductor(conductor, dni);
+  if (vehiculo?.trim()) sistemaDatos.agregarVehiculo(vehiculo, 'Camión');
+  if (acoplado?.trim()) sistemaDatos.agregarVehiculo(acoplado, 'Acoplado');
+  sistemaDatos.renderizarListaConductores();
+  sistemaDatos.renderizarListaVehiculos();
+  mostrarNotificacionExito('Datos cargados');
+}
+
+function actualizarTipoDocumento() {
+  tipoDocumento = document.getElementById('tipoRemito')?.value || 'ORIGINAL';
+  cargarNumeroRemito();
+}
+
+function cargarNumeroRemito() {
+  const hoy = new Date();
+  const año = hoy.getFullYear();
   
   const tipo = document.getElementById('tipoRemito')?.value || 'ORIGINAL';
-  const numRemito = document.getElementById('numRemito').value;
-  const numConTipo = tipo === 'ORIGINAL' ? numRemito : `${numRemito}-${tipo}`;
-  
-  document.getElementById('numRemito').value = numConTipo;
-  mostrarNotificacionExito('✅ Nuevo remito: ' + numConTipo);
-}
-
-async function cargarNumeroRemitoServer() {
-  const usuario = sistemaDatos?.datos?.usuario || 'DEFAULT';
   const forceNumber = document.getElementById('forceNumber')?.value.trim();
-  
   if (forceNumber) {
-    document.getElementById('numRemito').value = forceNumber.toUpperCase();
+    const numRemito = document.getElementById('numRemito');
+    if (numRemito) numRemito.value = tipo === 'ORIGINAL' ? forceNumber.toUpperCase() : `${forceNumber.toUpperCase()}-${tipo}`;
     return;
   }
   
-  try {
-    const url = `${GAS_BASE_URL}?action=getNextRemito&usuario=${encodeURIComponent(usuario)}`;
-    console.log('Cargando número:', url);
-    const response = await fetch(url, { method: 'GET', redirect: 'follow' });
-    console.log('Response status:', response.status);
-    
-    if (!response.ok) throw new Error('Error servidor: ' + response.status);
-    
-    const text = await response.text();
-    console.log('Response text:', text.substring(0, 500));
-    
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch(e) {
-      // Buscar JSON en la respuesta
-      const match = text.match(/\{.*\}/);
-      if (match) {
-        data = JSON.parse(match[0]);
-      } else {
-        throw new Error('No se pudo parsear JSON');
-      }
-    }
-    
-    console.log('Data parsed:', data);
-    
-    if (data && data.numero) {
-      document.getElementById('numRemito').value = data.numero;
-      numeracionSistema.ultimoNumero = data.valor;
-      servidorOnline = true;
-    } else {
-      throw new Error('Respuesta sin número');
-    }
-  } catch (error) {
-    console.error('Error numeración server:', error);
-    servidorOnline = false;
-    cargarNumeroRemitoLocal();
-  }
-  
-  actualizarIndicadorServidor();
-  
-  const hoy = new Date().toISOString().split('T')[0];
-  document.getElementById('fecha').value = hoy;
-  actualizarFechaFirma();
-}
-
-function cargarNumeroRemitoLocal() {
   const usuario = sistemaDatos?.datos?.usuario || 'DEFAULT';
-  const año = new Date().getFullYear();
-  const prefijo = usuario.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 6);
-  const key = `ultimoRemito_${año}_${prefijo}`;
+  const prefijoUsuario = usuario.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 6);
   
-  let ultimo = localStorage.getItem(key);
-  let numero = ultimo ? parseInt(ultimo) : 0;
-  numero++;
+  const storageKey = `ultimoRemito_${año}_${prefijoUsuario}`;
+  let ultimo = localStorage.getItem(storageKey);
   
-  const formateado = `RI${prefijo ? '_' + prefijo : ''}-${año}-${String(numero).padStart(5, '0')}`;
-  document.getElementById('numRemito').value = formateado;
-  numeracionSistema.ultimoNumero = numero;
-  
-  localStorage.setItem(key, numero);
-  mostrarNotificacionExito('⚠️ Modo offline - numeración local');
-}
-
-// ==========================================================================
-// GUARDAR REMITO
-// ==========================================================================
-
-async function guardarRemito() {
-  if (!validarFormulario()) {
-    alert('❌ Faltan datos obligatorios');
-    return;
+  if (ultimo) {
+    numeracionSistema.ultimoNumero = parseInt(ultimo, 10);
+  } else {
+    localStorage.setItem(storageKey, "0");
+    numeracionSistema.ultimoNumero = 0;
   }
   
-  const remito = {
-    numRemito: document.getElementById('numRemito')?.value,
-    fecha: document.getElementById('fecha')?.value,
-    origen: {
-      razonSocial: document.getElementById('origenRS')?.value,
-      domicilio: document.getElementById('origenDom')?.value,
-      cuit: document.getElementById('origenCUIT')?.value
-    },
-    destino: {
-      razonSocial: document.getElementById('destinoRS')?.value,
-      domicilio: document.getElementById('destinoDom')?.value
-    },
-    transporte: {
-      conductor: document.getElementById('conductor')?.value,
-      dni: document.getElementById('dni')?.value,
-      vehiculo: document.getElementById('vehiculo')?.value,
-      acoplado: document.getElementById('acoplado')?.value
-    },
-    detalle: document.getElementById('detalle')?.value,
-    receptor: document.getElementById('nombreReceptor')?.value,
-    fechaFirma: document.getElementById('fechaFirma')?.value,
-    usuario: sistemaDatos?.datos?.usuario || 'DEFAULT',
-    timestamp: Date.now(),
-    sincronizado: false
+  const nuevoNumero = numeracionSistema.ultimoNumero + 1;
+  const numeroFormateado = `RI${prefijoUsuario ? '_' + prefijoUsuario : ''}-${año}-${String(nuevoNumero).padStart(5, '0')}`;
+  const numConTipo = tipo === 'ORIGINAL' ? numeroFormateado : `${numeroFormateado}-${tipo}`;
+  
+  const numRemito = document.getElementById('numRemito');
+  const fecha = document.getElementById('fecha');
+  
+  if (numRemito) numRemito.value = numConTipo;
+  if (fecha) {
+    fecha.value = hoy.toISOString().split('T')[0];
+    actualizarFechaFirma();
+  }
+}
+
+function nuevoRemito() {
+  cargarNumeroRemito();
+  mostrarNotificacionExito('✅ Nuevo remito generado');
+}
+
+function guardarNumeracion(año, numero, usuario = 'DEFAULT') {
+  const prefijoUsuario = usuario.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 6);
+  localStorage.setItem(`ultimoRemito_${año}_${prefijoUsuario}`, numero.toString());
+}
+
+function reiniciarNumeracion() {
+  if (!confirm('⚠️ ¿Reiniciar numeración?')) return;
+  
+  const año = new Date().getFullYear();
+  const usuario = sistemaDatos?.datos?.usuario || 'DEFAULT';
+  const prefijoUsuario = usuario.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 6);
+  
+  localStorage.setItem(`ultimoRemito_${año}_${prefijoUsuario}`, "0");
+  mostrarNotificacionExito(`Numeración reiniciada`);
+  setTimeout(() => cargarNumeroRemito(), 500);
+}
+
+function backupNumeracion() {
+  const año = new Date().getFullYear();
+  const usuario = sistemaDatos?.datos?.usuario || 'DEFAULT';
+  const prefijoUsuario = usuario.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 6);
+  const key = `ultimoRemito_${año}_${prefijoUsuario}`;
+  const valor = localStorage.getItem(key) || '0';
+  
+  const backup = {
+    año: año,
+    usuario: usuario,
+    ultimoNumero: parseInt(valor),
+    fechaBackup: new Date().toISOString()
   };
   
-  sistemaDatos.datos.remitosLocales.push(remito);
-  sistemaDatos.guardarRemitosLocales();
-  
-  let guardadoEnServidor = false;
-  if (servidorOnline) {
-    try {
-      const response = await fetch(`${GAS_BASE_URL}?action=saveRemito`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(remito)
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        remito.sincronizado = true;
-        remito.id = result.id || remito.numRemito;
-        guardadoEnServidor = true;
-        
-        const idx = sistemaDatos.datos.remitosLocales.findIndex(r => r.timestamp === remito.timestamp);
-        if (idx !== -1) sistemaDatos.datos.remitosLocales[idx] = remito;
-        sistemaDatos.guardarRemitosLocales();
-      }
-    } catch (error) {
-      console.error('Error guardando en servidor:', error);
-    }
-  }
-  
-  if (guardadoEnServidor) {
-    alert(`✅ Remito guardado en servidor y local\nNúmero: ${remito.numRemito}`);
-  } else {
-    alert(`✅ Remito guardado LOCALMENTE (sin conexión)\nNúmero: ${remito.numRemito}\n\nSe sincronizará cuando haya conexión.`);
-  }
-}
-
-// ==========================================================================
-// EXPORTAR BACKUP
-// ==========================================================================
-
-async function exportarBackup() {
-  let todosRemitos = [];
-  
-  if (servidorOnline) {
-    try {
-      const response = await fetch(`${GAS_BASE_URL}?action=getAllRemitos`, { 
-        method: 'GET', 
-        redirect: 'follow' 
-      });
-      
-      if (response.ok) {
-        const text = await response.text();
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch(e) {
-          const match = text.match(/\{.*\}/);
-          if (match) data = JSON.parse(match[0]);
-        }
-        
-        if (data && data.remitos) {
-          todosRemitos = data.remitos;
-        }
-      }
-    } catch (error) {
-      console.error('Error obteniendo remitos del servidor:', error);
-    }
-  }
-  
-  const localesNoSync = sistemaDatos.datos.remitosLocales.filter(r => !r.sincronizado);
-  todosRemitos = [...todosRemitos, ...localesNoSync];
-  
-  const blob = new Blob([JSON.stringify({
-    exportDate: new Date().toISOString(),
-    totalRemitos: todosRemitos.length,
-    remitos: todosRemitos
-  }, null, 2)], { type: 'application/json' });
-  
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {type: 'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `backup_remitos_${new Date().toISOString().split('T')[0]}.json`;
+  a.download = `backup_numeracion_${año}_${prefijoUsuario || 'DEFAULT'}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   
-  mostrarNotificacionExito(`✅ Backup exportado: ${todosRemitos.length} remitos`);
+  mostrarNotificacionExito('✅ Backup guardado');
 }
 
-// ==========================================================================
-// UTILIDADES
-// ==========================================================================
-
-function validarFormulario() {
-  let isValid = true;
-  document.querySelectorAll('[required]').forEach(field => {
-    if (!field.value.trim()) { field.classList.add('error'); isValid = false; }
-    else { field.classList.remove('error'); }
-  });
+function restaurarNumeracion(event) {
+  const file = event.target.files[0];
+  if (!file) return;
   
-  const detalle = document.getElementById('detalle')?.value || '';
-  const lineas = detalle.split('\n').filter(l => l.trim());
-  let formatoCorrecto = true;
-  lineas.forEach(linea => { if (linea.split(';').length < 4 && linea.trim()) formatoCorrecto = false; });
-  
-  if (!formatoCorrecto) {
-    document.getElementById('detalleError').style.display = 'block';
-    document.getElementById('detalle').classList.add('error');
-    isValid = false;
-  } else {
-    document.getElementById('detalleError').style.display = 'none';
-    document.getElementById('detalle').classList.remove('error');
-  }
-  
-  return isValid;
-}
-
-function mostrarNotificacionExito(mensaje) {
-  const notif = document.getElementById('successNotification');
-  if (notif) { notif.textContent = mensaje; notif.style.display = 'block'; setTimeout(() => notif.style.display = 'none', 3000); }
-}
-
-function showTab(tabName) {
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-  document.getElementById(tabName)?.classList.add('active');
-  if (event?.target) event.target.classList.add('active');
-}
-
-function formatearFecha(fechaISO) {
-  if (!fechaISO) return '';
-  const f = new Date(fechaISO + 'T00:00:00');
-  return `${String(f.getDate()).padStart(2,'0')}/${String(f.getMonth()+1).padStart(2,'0')}/${f.getFullYear()}`;
-}
-
-function actualizarFechaFirma() {
-  const fechaRemito = document.getElementById('fecha')?.value;
-  const fechaFirma = document.getElementById('fechaFirma');
-  if (fechaFirma && fechaRemito) fechaFirma.value = fechaRemito;
-}
-
-function sincronizarConductor() {
-  const conductor = document.getElementById('conductor');
-  const nombreConductor = document.getElementById('nombreConductor');
-  if (conductor && nombreConductor) {
-    conductor.addEventListener('input', () => nombreConductor.value = conductor.value);
-    conductor.addEventListener('blur', () => nombreConductor.value = conductor.value);
-  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.año && data.usuario !== undefined && data.ultimoNumero !== undefined) {
+        const prefijoUsuario = data.usuario.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 6);
+        localStorage.setItem(`ultimoRemito_${data.año}_${prefijoUsuario}`, data.ultimoNumero.toString());
+        mostrarNotificacionExito(`✅ Numeración restaurada`);
+        setTimeout(() => cargarNumeroRemito(), 500);
+      } else {
+        alert('❌ Archivo inválido');
+      }
+    } catch (error) {
+      alert('❌ Error al leer archivo');
+    }
+  };
+  reader.readAsText(file);
 }
 
 function setupUppercaseConversion() {
-  ['forceNumber', 'origenRS', 'origenDom', 'origenCUIT', 'destinoRS', 'destinoDom', 'conductor', 'dni', 'vehiculo', 'acoplado', 'detalle', 'nombreConductor', 'nombreReceptor', 'usuarioConfig'].forEach(id => {
-    const field = document.getElementById(id);
+  const fields = ['forceNumber', 'origenRS', 'origenDom', 'origenCUIT', 'destinoRS', 'destinoDom', 
+                  'conductor', 'dni', 'vehiculo', 'acoplado', 'detalle', 'nombreConductor', 
+                  'nombreReceptor', 'usuarioConfig'];
+  
+  fields.forEach(fieldId => {
+    const field = document.getElementById(fieldId);
     if (field) {
       field.addEventListener('input', function() {
         const start = this.selectionStart;
@@ -871,44 +985,174 @@ function setupUppercaseConversion() {
   });
 }
 
-function actualizarContadorFilas() {
-  const detalle = document.getElementById('detalle')?.value?.trim() || '';
-  const filas = detalle.split('\n').filter(l => l.trim());
-  document.getElementById('contadorFilas').textContent = filas.length;
-  
-  let paginas = 1;
-  if (filas.length > FILAS_PAGINA_1) paginas = 1 + Math.ceil((filas.length - FILAS_PAGINA_1) / FILAS_PAGINA_SIGUIENTE);
-  
-  const info = document.getElementById('contadorFilasInfo');
-  info.innerHTML = `Registros: ${filas.length} | Páginas por copia: ${paginas}`;
-  info.className = 'contador-filas ' + (paginas > 2 ? 'danger' : paginas > 1 ? 'warning' : 'normal');
+function actualizarFechaFirma() {
+  const fechaRemito = document.getElementById('fecha')?.value;
+  const fechaFirma = document.getElementById('fechaFirma');
+  if (fechaFirma && fechaRemito) {
+    fechaFirma.value = fechaRemito;
+  }
 }
 
-function guardarConfigUsuario() {
-  const input = document.getElementById('usuarioConfig');
-  if (!input?.value.trim()) { alert('⚠️ Ingrese un usuario válido'); return; }
-  sistemaDatos.setUsuario(input.value.trim());
-  mostrarNotificacionExito(`✅ Usuario: ${input.value.trim()}`);
-  cargarNumeroRemitoServer();
+function sincronizarConductor() {
+  const conductor = document.getElementById('conductor');
+  const nombreConductor = document.getElementById('nombreConductor');
+  
+  if (conductor && nombreConductor) {
+    conductor.addEventListener('input', function() {
+      nombreConductor.value = this.value;
+    });
+    conductor.addEventListener('blur', function() {
+      nombreConductor.value = this.value;
+    });
+  }
 }
 
-// ==========================================================================
-// GENERACIÓN DE PDF
-// ==========================================================================
-
-async function validarYPrevisualizar() {
-  if (!validarFormulario()) { alert('❌ Complete campos obligatorios'); return; }
+function validarFormulario() {
+  let isValid = true;
+  const requiredFields = document.querySelectorAll('[required]');
   
-  const filas = document.getElementById('detalle').value.trim().split('\n').filter(l => l.trim());
-  const html = generarHTMLCompleto(filas);
+  requiredFields.forEach(field => {
+    if (!field.value.trim()) {
+      field.classList.add('error');
+      isValid = false;
+    } else {
+      field.classList.remove('error');
+    }
+  });
   
-  const iframe = document.getElementById('iframeUnico');
-  if (iframe) iframe.srcdoc = html;
-  showTab('preview');
-  mostrarNotificacionExito('Previsualización lista');
+  const detalle = document.getElementById('detalle')?.value || '';
+  const lineas = detalle.split('\n').filter(l => l.trim());
+  let formatoCorrecto = true;
+  
+  lineas.forEach(linea => {
+    const partes = linea.split(';').map(x => x.trim());
+    if (partes.length < 4 && linea.trim()) formatoCorrecto = false;
+  });
+  
+  const detalleError = document.getElementById('detalleError');
+  const detalleInput = document.getElementById('detalle');
+  
+  if (!formatoCorrecto) {
+    if (detalleError) detalleError.style.display = 'block';
+    if (detalleInput) detalleInput.classList.add('error');
+    isValid = false;
+  } else {
+    if (detalleError) detalleError.style.display = 'none';
+    if (detalleInput) detalleInput.classList.remove('error');
+  }
+  
+  return isValid;
 }
 
-function generarHTMLCompleto(filas) {
+function mostrarNotificacionExito(mensaje) {
+  const notification = document.getElementById('successNotification');
+  if (!notification) return;
+  notification.textContent = mensaje;
+  notification.style.display = 'block';
+  setTimeout(() => notification.style.display = 'none', 3000);
+}
+
+function showTab(tabName) {
+  const tabContents = document.querySelectorAll('.tab-content');
+  const tabButtons = document.querySelectorAll('.tab-button');
+  
+  tabContents.forEach(tab => tab.classList.remove('active'));
+  tabButtons.forEach(button => button.classList.remove('active'));
+  
+  const selectedTab = document.getElementById(tabName);
+  if (selectedTab) selectedTab.classList.add('active');
+  
+  if (event && event.target) event.target.classList.add('active');
+}
+
+function formatearFecha(fechaISO) {
+  if (!fechaISO) return '';
+  const fecha = new Date(fechaISO + 'T00:00:00');
+  const dia = String(fecha.getDate()).padStart(2, '0');
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+  const año = fecha.getFullYear();
+  return `${dia}/${mes}/${año}`;
+}
+
+function actualizarLogoEnTemplate() {
+  const logoImg = document.getElementById('logoPDF');
+  if (logoImg) {
+    if (logoURL) {
+      logoImg.src = logoURL;
+      logoImg.style.display = 'inline-block';
+    } else {
+      logoImg.style.display = 'none';
+    }
+  }
+}
+
+function actualizarDatosEnTemplate(tipo, esPrimeraPagina) {
+  const tipoEl = document.getElementById('tipoPDF');
+  if (tipoEl) tipoEl.textContent = tipo;
+  
+  const seccionDatos = document.getElementById('seccionDatosOrigenDestino');
+  if (seccionDatos) {
+    seccionDatos.style.display = esPrimeraPagina ? 'block' : 'none';
+  }
+  
+  const campos = [
+    ['numPDF', 'numRemito'],
+    ['fechaPDF', 'fecha', true],
+    ['origenRSp', 'origenRS'],
+    ['origenDomp', 'origenDom'],
+    ['origenCUITp', 'origenCUIT'],
+    ['destinoRSp', 'destinoRS'],
+    ['destinoDomp', 'destinoDom'],
+    ['conductorp', 'conductor'],
+    ['dnip', 'dni'],
+    ['vehiculop', 'vehiculo'],
+    ['acopladop', 'acoplado'],
+    ['origenDomp2', 'origenDom'],
+    ['destinoDomp2', 'destinoDom'],
+    ['nombreConductorPDF', 'nombreConductor'],
+    ['nombreReceptorPDF', 'nombreReceptor']
+  ];
+  
+  campos.forEach(([idDestino, idOrigen, formatear]) => {
+    const destEl = document.getElementById(idDestino);
+    const origEl = document.getElementById(idOrigen);
+    if (destEl && origEl) {
+      if (formatear) {
+        destEl.textContent = formatearFecha(origEl.value);
+      } else {
+        destEl.textContent = origEl.value;
+      }
+    }
+  });
+  
+  const fechaFirma = document.getElementById('fechaFirma')?.value || document.getElementById('fecha')?.value;
+  const fechaConductor = document.getElementById('fechaFirmaConductorPDF');
+  const fechaReceptor = document.getElementById('fechaFirmaReceptorPDF');
+  
+  if (fechaConductor) {
+    fechaConductor.textContent = fechaFirma ? `Fecha: ${formatearFecha(fechaFirma)}` : '';
+  }
+  if (fechaReceptor) {
+    fechaReceptor.textContent = fechaFirma ? `Fecha: ${formatearFecha(fechaFirma)}` : '';
+  }
+  
+  const usuarioEl = document.getElementById('usuarioPDF');
+  if (usuarioEl) {
+    usuarioEl.textContent = sistemaDatos?.datos?.usuario ? `USUARIO: ${sistemaDatos.datos.usuario}` : '';
+  }
+  
+  const logoImg = document.getElementById('logoPDF');
+  if (logoImg) {
+    if (logoURL) {
+      logoImg.src = logoURL;
+      logoImg.style.display = 'inline-block';
+    } else {
+      logoImg.style.display = 'none';
+    }
+  }
+}
+
+function generarHTMLTemplate(tipo, esPrimeraPagina) {
   const valores = {
     numRemito: document.getElementById('numRemito')?.value || '',
     fecha: formatearFecha(document.getElementById('fecha')?.value),
@@ -926,215 +1170,374 @@ function generarHTMLCompleto(filas) {
     fechaFirma: formatearFecha(document.getElementById('fechaFirma')?.value || document.getElementById('fecha')?.value),
     usuario: sistemaDatos?.datos?.usuario || ''
   };
-  
-  const filasHTML = filas.map(linea => {
-    const c = linea.split(';').map(x => x.trim());
-    return `<tr><td>${c[0]||''}</td><td>${c[1]||''}</td><td>${c[2]||''}</td><td>${c[3]||''}</td></tr>`;
-  }).join('');
-  
-  const paginaHTML = (tipo) => `
-    <div style="width:210mm; min-height:297mm; padding:15mm; background:white; font-family:Arial; font-size:11pt; box-sizing:border-box; display:flex; flex-direction:column;">
-      <table width="100%" style="margin-bottom:15px;">
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+body { margin:0; padding:0; font-family:Arial; font-size:11pt; }
+#template { width:210mm; min-height:297mm; padding:15mm 18mm; background:white; box-sizing:border-box; display:flex; flex-direction:column; }
+.firma-fija { position:relative; margin-top:auto; padding-top:30px; width:100%; }
+</style>
+</head>
+<body>
+<div id="template">
+  <table width="100%" style="margin-bottom:15px; border-collapse:collapse;">
+    <tr>
+      <td width="35%" valign="top">${logoURL ? `<img src="${logoURL}" style="max-width:180px; max-height:90px; object-fit:contain;">` : ''}</td>
+      <td width="65%" align="center">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin:0; color:#1a3c6e; font-size:18pt; font-weight:bold;">
+          <span>REMITO INTERNO</span>
+          <span style="font-size:14pt; color:#4caf50; white-space:nowrap;">${valores.usuario ? 'USUARIO: ' + valores.usuario : ''}</span>
+        </div>
+        <h2 style="margin:8px 0 0; color:#d32f2f; font-size:18pt;">${tipo}</h2>
+      </td>
+    </tr>
+    <tr><td colspan="2" style="text-align:right; font-weight:bold; padding-top:10px; font-size:13pt;">N° ${valores.numRemito} - Fecha: ${valores.fecha}</td></tr>
+  </table>
+  ${esPrimeraPagina ? `
+  <div style="border:3px double #1a3c6e; padding:20px; border-radius:10px; margin-bottom:15px;">
+    <table width="100%" style="border-collapse:collapse;">
+      <tr>
+        <td width="50%" style="border:1px solid #000; padding:12px;">Razón Social: ${valores.origenRS}<br>Domicilio: ${valores.origenDom}<br>CUIT: ${valores.origenCUIT}</td>
+        <td width="50%" style="border:1px solid #000; padding:12px;">Razón Social: ${valores.destinoRS}<br>Domicilio: ${valores.destinoDom}</td>
+      </tr>
+    </table>
+    <table width="100%" style="border-collapse:collapse; margin-top:15px;">
+      <tr>
+        <td width="50%" style="border:1px solid #000; padding:12px;"><b>Datos del Transporte</b><br>Conductor: ${valores.conductor}, DNI: ${valores.dni}<br>Vehiculo: ${valores.vehiculo} / Acoplado: ${valores.acoplado}</td>
+        <td width="50%" style="border:1px solid #000; padding:12px;"><b>Datos del Traslado</b><br>Partida: ${valores.origenDom}<br>Destino: ${valores.destinoDom}</td>
+      </tr>
+    </table>
+  </div>` : ''}
+  <h3 style="color:#1a3c6e; margin-bottom:10px;">DETALLE DE LOS BIENES</h3>
+  <table width="100%" border="1" cellpadding="0" cellspacing="0" style="border-collapse:collapse; border:1px solid #000;">
+    <thead><tr style="background:#1a3c6e; color:white;"><th style="padding:8px;">CANTIDAD</th><th style="padding:8px;">UNIDAD</th><th style="padding:8px;">BIENES</th><th style="padding:8px;">ESTADO</th></tr></thead>
+    <tbody id="bienesPDF"></tbody>
+  </table>
+  <div class="firma-fija">
+    <div style="margin:20px 0; padding:15px; background:#fff8e1; border-left:6px solid #ffb300; font-size:11pt;"><b>TRASLADO INTERNO DE BIENES (MAQUINARIA, EQUIPOS, CAMIONES Y/O INSUMOS) – NO CONSTITUYE TRANSFERENCIA DE DOMINIO – ART. 26 RG 3358/2012 Y MODIFICATORIAS.</b></div>
+    <div style="text-align:center; color:#d32f2f; font-size:16pt; font-weight:bold; margin:20px 0;">DOCUMENTO NO VÁLIDO COMO FACTURA</div>
+    <div style="margin-top:30px;">
+      <table width="100%">
         <tr>
-          <td width="35%">${logoURL ? `<img src="${logoURL}" style="max-width:180px;">` : ''}</td>
-          <td width="65%" align="center">
-            <div style="font-size:18pt; font-weight:bold; color:#1a3c6e;">REMITO INTERNO</div>
-            <div style="font-size:14pt; color:#4caf50;">${valores.usuario ? 'USUARIO: ' + valores.usuario : ''}</div>
-            <h2 style="color:#d32f2f; font-size:18pt;">${tipo}</h2>
+          <td style="text-align:center; width:50%; padding-bottom:10px; vertical-align:top;">
+            <div style="border-bottom:1px solid #000; margin:0 auto 5px; width:80%; height:40px;"></div><b>FIRMA DEL CONDUCTOR</b><br>${valores.nombreConductor}<div style="margin-top:5px;">Fecha: ${valores.fechaFirma}</div>
+          </td>
+          <td style="text-align:center; width:50%; padding-bottom:10px; vertical-align:top;">
+            <div style="border-bottom:1px solid #000; margin:0 auto 5px; width:80%; height:40px;"></div><b>FIRMA DEL RECEPTOR</b><br>${valores.nombreReceptor}<div style="margin-top:5px;">Fecha: ${valores.fechaFirma}</div>
           </td>
         </tr>
-        <tr><td colspan="2" style="text-align:right; font-weight:bold;">N° ${valores.numRemito} - Fecha: ${valores.fecha}</td></tr>
       </table>
-      
-      <div style="border:3px double #1a3c6e; padding:20px; margin-bottom:15px;">
-        <table width="100%">
-          <tr>
-            <td width="50%" style="border:1px solid #000; padding:12px;">
-              <strong>ORIGEN</strong><br>
-              RS: ${valores.origenRS}<br>
-              Dom: ${valores.origenDom}<br>
-              CUIT: ${valores.origenCUIT}
-            </td>
-            <td width="50%" style="border:1px solid #000; padding:12px;">
-              <strong>DESTINO</strong><br>
-              RS: ${valores.destinoRS}<br>
-              Dom: ${valores.destinoDom}
-            </td>
-          </tr>
-        </table>
-        <table width="100%" style="margin-top:15px;">
-          <tr>
-            <td width="50%" style="border:1px solid #000; padding:12px;">
-              <strong>Transporte</strong><br>
-              Conductor: ${valores.conductor}, DNI: ${valores.dni}<br>
-              Veh: ${valores.vehiculo} / Acoplado: ${valores.acoplado}
-            </td>
-            <td width="50%" style="border:1px solid #000; padding:12px;">
-              <strong>Traslado</strong><br>
-              Partida: ${valores.origenDom}<br>
-              Destino: ${valores.destinoDom}
-            </td>
-          </tr>
-        </table>
-      </div>
-      
-      <h3 style="color:#1a3c6e;">DETALLE DE LOS BIENES</h3>
-      <table width="100%" border="1" style="border-collapse:collapse;">
-        <thead><tr style="background:#1a3c6e; color:white;"><th>CANT</th><th>UNIDAD</th><th>BIENES</th><th>ESTADO</th></tr></thead>
-        <tbody>${filasHTML}</tbody>
-      </table>
-      
-      <div style="margin-top:auto;">
-        <div style="margin:20px 0; padding:15px; background:#fff8e1; border-left:6px solid #ffb300;">
-          <b>TRASLADO INTERNO DE BIENES – NO CONSTITUYE TRANSFERENCIA DE DOMINIO – ART. 26 RG 3358/2012</b>
-        </div>
-        <div style="text-align:center; color:#d32f2f; font-size:16pt; font-weight:bold; margin:20px 0;">DOCUMENTO NO VÁLIDO COMO FACTURA</div>
-        <table width="100%">
-          <tr>
-            <td style="text-align:center; width:50%;">
-              <div style="border-top:1px solid #000; margin-top:50px; padding-top:5px;">
-                <b>FIRMA CONDUCTOR</b><br>${valores.nombreConductor}<br>Fecha: ${valores.fechaFirma}
-              </div>
-            </td>
-            <td style="text-align:center; width:50%;">
-              <div style="border-top:1px solid #000; margin-top:50px; padding-top:5px;">
-                <b>FIRMA RECEPTOR</b><br>${valores.nombreReceptor}<br>Fecha: ${valores.fechaFirma}
-              </div>
-            </td>
-          </tr>
-        </table>
-      </div>
     </div>
-  `;
+  </div>
+</div>
+</body>
+</html>`;
+}
+
+function generarHTMLPagina(filas, inicio, cantidad, esPrimeraPagina, tipo, numeroPagina) {
+  let html = generarHTMLTemplate(tipo, esPrimeraPagina);
   
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>@media print { .page-break { page-break-after:always; } }</style></head><body>`
-    + paginaHTML(tipoDocumento) 
-    + `</body></html>`;
+  let filasHTML = '';
+  
+  for (let i = 0; i < cantidad; i++) {
+    const linea = filas[inicio + i];
+    if (linea) {
+      const c = linea.split(';').map(x => x.trim());
+      if (c.length >= 4) {
+        filasHTML += `<tr style="height:8mm;"><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px; width:15%;">${c[0]}</td><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px; width:15%;">${c[1]}</td><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px; width:50%;">${c[2]}</td><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px; width:20%;">${c[3]}</td></tr>`;
+      } else {
+        filasHTML += `<tr style="height:8mm;"><td colspan="4" style="border:1px solid #000; border-top:none; border-left:none; padding:4px; color:red;">ERROR FORMATO</td></tr>`;
+      }
+    } else {
+      filasHTML += `<tr style="height:8mm;"><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px;">&nbsp;</td><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px;">&nbsp;</td><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px;">&nbsp;</td><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px;">&nbsp;</td></tr>`;
+    }
+  }
+  
+  const filasRequeridas = esPrimeraPagina ? FILAS_PAGINA_1 : FILAS_PAGINA_SIGUIENTE;
+  for (let i = cantidad; i < filasRequeridas; i++) {
+    filasHTML += `<tr style="height:8mm;"><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px;">&nbsp;</td><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px;">&nbsp;</td><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px;">&nbsp;</td><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px;">&nbsp;</td></tr>`;
+  }
+  
+  html = html.replace('<tbody id="bienesPDF"></tbody>', `<tbody id="bienesPDF">${filasHTML}</tbody>`);
+  
+  return html;
+}
+
+async function generarPaginasPrevisualizacion(filas, tipo) {
+  let procesadas = 0;
+  let numPagina = 0;
+  const totalFilas = filas.length;
+  let html = '';
+  
+  while (procesadas < totalFilas) {
+    numPagina++;
+    const esPrimera = (numPagina === 1);
+    const limite = esPrimera ? FILAS_PAGINA_1 : FILAS_PAGINA_SIGUIENTE;
+    const cantidad = Math.min(limite, totalFilas - procesadas);
+    
+    html += generarHTMLPagina(filas, procesadas, cantidad, esPrimera, tipo, numPagina);
+    
+    if (procesadas + cantidad < totalFilas) {
+      html += '<div style="page-break-after:always; height:20px; background:#ccc; margin:20px 0; text-align:center; line-height:20px; color:#666; font-size:12px;">--- SALTO DE PÁGINA ---</div>';
+    }
+    
+    procesadas += cantidad;
+  }
+  
+  return { html, totalPaginas: numPagina };
+}
+
+async function validarYPrevisualizar() {
+  if (!validarFormulario()) {
+    alert('❌ Complete todos los campos obligatorios.');
+    return;
+  }
+  
+  const detalleEl = document.getElementById('detalle');
+  if (!detalleEl) return;
+  
+  const filas = detalleEl.value.trim().split('\n').filter(l => l.trim());
+  
+  const tipo = document.getElementById('tipoRemito')?.value || 'ORIGINAL';
+  const resultado = await generarPaginasPrevisualizacion(filas, tipo);
+  
+  const contenidoHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body { margin:0; padding:20px; background:#e0e0e0; font-family: Arial, sans-serif; }</style></head><body>${resultado.html}</body></html>`;
+  
+  const iframe = document.getElementById('iframeUnico');
+  if (iframe) iframe.srcdoc = contenidoHTML;
+  
+  showTab('preview');
+  mostrarNotificacionExito(`Previsualización: ${resultado.totalPaginas} página(s)`);
+}
+
+async function generarPaginasPDF(pdf, filas, tipo, esPrimeraDelPDF) {
+  let procesadas = 0;
+  let numPagina = 0;
+  const totalFilas = filas.length;
+  let esPrimeraPagina = esPrimeraDelPDF;
+  
+  while (procesadas < totalFilas) {
+    numPagina++;
+    const esPrimera = (numPagina === 1);
+    const limite = esPrimera ? FILAS_PAGINA_1 : FILAS_PAGINA_SIGUIENTE;
+    const cantidad = Math.min(limite, totalFilas - procesadas);
+    
+    actualizarDatosEnTemplate(tipo, esPrimera);
+    
+    const tbody = document.getElementById('bienesPDF');
+    if (tbody) {
+      tbody.innerHTML = '';
+      
+      for (let i = 0; i < cantidad; i++) {
+        const tr = document.createElement('tr');
+        tr.style.height = '8mm';
+        
+        const linea = filas[procesadas + i];
+        if (linea) {
+          const c = linea.split(';').map(x => x.trim());
+          if (c.length >= 4) {
+            tr.innerHTML = `<td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px; width:15%;">${c[0]}</td><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px; width:15%;">${c[1]}</td><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px; width:50%;">${c[2]}</td><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px; width:20%;">${c[3]}</td>`;
+          } else {
+            tr.innerHTML = `<td colspan="4" style="border:1px solid #000; border-top:none; border-left:none; padding:4px; color:red;">ERROR FORMATO</td>`;
+          }
+        } else {
+          tr.innerHTML = `<td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px;">&nbsp;</td><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px;">&nbsp;</td><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px;">&nbsp;</td><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px;">&nbsp;</td>`;
+        }
+        tbody.appendChild(tr);
+      }
+      
+      const filasRequeridas = esPrimera ? FILAS_PAGINA_1 : FILAS_PAGINA_SIGUIENTE;
+      for (let i = cantidad; i < filasRequeridas; i++) {
+        const tr = document.createElement('tr');
+        tr.style.height = '8mm';
+        tr.innerHTML = `<td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px;">&nbsp;</td><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px;">&nbsp;</td><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px;">&nbsp;</td><td style="border:1px solid #000; border-top:none; border-left:none; padding:4px 6px;">&nbsp;</td>`;
+        tbody.appendChild(tr);
+      }
+    }
+    
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    await new Promise(resolve => setTimeout(resolve, 150));
+    
+    const template = document.getElementById('template');
+    if (!template) continue;
+    
+    const canvas = await html2canvas(template, {
+      scale: 1.5,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      width: 794,
+      height: 1123,
+      windowWidth: 794,
+      windowHeight: 1123
+    });
+    
+    if (!esPrimeraPagina) {
+      pdf.addPage();
+    }
+    esPrimeraPagina = false;
+    
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297);
+    procesadas += cantidad;
+  }
+  
+  return numPagina;
 }
 
 async function validarYDescargarPDF() {
   if (numeracionSistema.isGenerating) return;
-  if (!validarFormulario()) { alert('❌ Complete campos obligatorios'); return; }
-  if (!window.jspdf) { alert('❌ Librería no cargada'); return; }
+  if (!validarFormulario()) {
+    alert('❌ Complete todos los campos obligatorios.');
+    return;
+  }
   
-  const numRemito = document.getElementById('numRemito')?.value;
-  if (!numRemito) { alert('❌ Genere un número de remito primero'); return; }
+  if (!window.jspdf || !window.html2canvas) {
+    alert('❌ Librerías no cargadas.');
+    return;
+  }
   
   numeracionSistema.isGenerating = true;
-  document.getElementById('loading')?.classList.add('active');
-  
-  // Guardar en Apps Script automáticamente
-  await guardarRemitoEnServidor();
+  const loading = document.getElementById('loading');
+  if (loading) loading.classList.add('active');
   
   try {
-    tipoDocumento = document.getElementById('tipoRemito')?.value || 'ORIGINAL';
+    const detalleEl = document.getElementById('detalle');
+    if (!detalleEl) throw new Error('No se encontró detalle');
     
-    const filas = document.getElementById('detalle').value.trim().split('\n').filter(l => l.trim());
+    const filas = detalleEl.value.trim().split('\n').filter(l => l.trim());
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
     
-    await generarPaginaPDF(pdf, filas, tipoDocumento, true);
+    const tipo = document.getElementById('tipoRemito')?.value || 'ORIGINAL';
     
-    pdf.save(`${numRemito}.pdf`);
+    await generarPaginasPDF(pdf, filas, tipo, true);
     
-    mostrarNotificacionExito('✅ Remito guardado y PDF descargado');
+    const totalPaginas = Math.ceil(filas.length <= FILAS_PAGINA_1 ? 1 : 1 + Math.ceil((filas.length - FILAS_PAGINA_1) / FILAS_PAGINA_SIGUIENTE));
+    
+    const numRemito = document.getElementById('numRemito')?.value || 'remito';
+    const nombre = numRemito.replace(/[^a-zA-Z0-9-]/g, '_');
+    pdf.save(`${nombre}.pdf`);
+    
+    const datosRemito = {
+      numero: numRemito,
+      fecha: document.getElementById('fecha')?.value,
+      tipo: tipo,
+      origenRS: document.getElementById('origenRS')?.value,
+      origenDom: document.getElementById('origenDom')?.value,
+      origenCUIT: document.getElementById('origenCUIT')?.value,
+      destinoRS: document.getElementById('destinoRS')?.value,
+      destinoDom: document.getElementById('destinoDom')?.value,
+      conductor: document.getElementById('conductor')?.value,
+      dni: document.getElementById('dni')?.value,
+      vehiculo: document.getElementById('vehiculo')?.value,
+      acoplado: document.getElementById('acoplado')?.value,
+      detalle: detalleEl.value,
+      usuario: sistemaDatos?.datos?.usuario || 'DEFAULT'
+    };
+    
+    const resultadoGS = await guardarEnGoogleSheets(datosRemito);
+    if (resultadoGS.success) {
+      mostrarNotificacionExito(`✅ PDF generado (${totalPaginas} págs) y guardado en Google Sheets`);
+    } else {
+      mostrarNotificacionExito(`⚠️ PDF generado (${totalPaginas} págs) - Error al guardar en Sheets: ${resultadoGS.message}`);
+    }
+    
+    const año = new Date().getFullYear();
+    const nuevoNumero = numeracionSistema.ultimoNumero + 1;
+    guardarNumeracion(año, nuevoNumero, sistemaDatos?.datos?.usuario || 'DEFAULT');
+    numeracionSistema.ultimoNumero = nuevoNumero;
+    
+    setTimeout(() => cargarNumeroRemito(), 1000);
     
   } catch (error) {
-    alert('❌ Error: ' + error.message);
+    alert(`❌ Error: ${error.message}`);
+    console.error(error);
   } finally {
-    document.getElementById('loading')?.classList.remove('active');
+    if (loading) loading.classList.remove('active');
     numeracionSistema.isGenerating = false;
   }
 }
 
-async function guardarRemitoEnServidor() {
-  const remito = {
-    numRemito: document.getElementById('numRemito')?.value,
-    fecha: document.getElementById('fecha')?.value,
-    tipo: document.getElementById('tipoRemito')?.value || 'ORIGINAL',
-    origen: {
-      razonSocial: document.getElementById('origenRS')?.value,
-      domicilio: document.getElementById('origenDom')?.value,
-      cuit: document.getElementById('origenCUIT')?.value
-    },
-    destino: {
-      razonSocial: document.getElementById('destinoRS')?.value,
-      domicilio: document.getElementById('destinoDom')?.value
-    },
-    transporte: {
-      conductor: document.getElementById('conductor')?.value,
-      dni: document.getElementById('dni')?.value,
-      vehiculo: document.getElementById('vehiculo')?.value,
-      acoplado: document.getElementById('acoplado')?.value
-    },
-    detalle: document.getElementById('detalle')?.value,
-    receptor: document.getElementById('nombreReceptor')?.value,
-    fechaFirma: document.getElementById('fechaFirma')?.value,
-    usuario: sistemaDatos?.datos?.usuario || 'DEFAULT',
-    timestamp: Date.now()
-  };
+function actualizarContadorFilas() {
+  const detalle = document.getElementById('detalle')?.value?.trim() || '';
+  const filas = detalle.split('\n').filter(l => l.trim());
   
-  try {
-    const response = await fetch(`${GAS_BASE_URL}?action=saveRemito`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(remito)
-    });
-    
-    if (response.ok) {
-      console.log('Remito guardado en servidor');
+  const contador = document.getElementById('contadorFilas');
+  const contadorInfo = document.getElementById('contadorFilasInfo');
+  
+  if (contador) contador.textContent = filas.length;
+  
+  if (contadorInfo) {
+    let paginas = 1;
+    if (filas.length > FILAS_PAGINA_1) {
+      paginas = 1 + Math.ceil((filas.length - FILAS_PAGINA_1) / FILAS_PAGINA_SIGUIENTE);
     }
-  } catch (error) {
-    console.error('Error guardando en servidor:', error);
+    contadorInfo.innerHTML = `Registros: ${filas.length} | Páginas por copia: ${paginas}`;
+    contadorInfo.className = 'contador-filas ' + (paginas > 2 ? 'danger' : paginas > 1 ? 'warning' : 'normal');
   }
 }
 
-async function generarPaginaPDF(pdf, filas, tipo, esPrimera) {
-  const html = generarHTMLCompleto(filas);
-  const container = document.createElement('div');
-  container.innerHTML = html;
-  container.style.position = 'absolute';
-  container.style.left = '-9999px';
-  document.body.appendChild(container);
-  
-  await new Promise(r => setTimeout(r, 100));
-  
-  const canvas = await html2canvas(container.firstElementChild, {
-    scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 794, height: 1123
-  });
-  
-  pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297);
-  document.body.removeChild(container);
-}
-
-// ==========================================================================
-// INICIALIZACIÓN
-// ==========================================================================
-
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
   sistemaDatos = new SistemaDatos();
+  
   setupUppercaseConversion();
   sincronizarConductor();
-  verificarServidor();
-  cargarNumeroRemitoServer();
+  
+  cargarNumeroRemito();
+  
+  const fechaInput = document.getElementById('fecha');
+  if (fechaInput) {
+    fechaInput.addEventListener('change', actualizarFechaFirma);
+  }
+  
   actualizarContadorFilas();
   
-  document.getElementById('detalle')?.addEventListener('input', actualizarContadorFilas);
-  document.getElementById('forceNumber')?.addEventListener('input', cargarNumeroRemitoServer);
-  document.getElementById('fecha')?.addEventListener('change', actualizarFechaFirma);
+  const detalle = document.getElementById('detalle');
+  if (detalle) {
+    detalle.addEventListener('input', actualizarContadorFilas);
+  }
   
-  document.getElementById('logoInput')?.addEventListener('change', function(e) {
-    if (e.target.files[0]) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        logoURL = ev.target.result;
-        const preview = document.getElementById('logoPreview');
-        if (preview) { preview.src = logoURL; preview.style.display = 'block'; }
-        mostrarNotificacionExito('Logo cargado');
-      };
-      reader.readAsDataURL(e.target.files[0]);
+  const forceNumber = document.getElementById('forceNumber');
+  if (forceNumber) {
+    forceNumber.addEventListener('input', cargarNumeroRemito);
+  }
+  
+  const logoInput = document.getElementById('logoInput');
+  if (logoInput) {
+    logoInput.addEventListener('change', function(e) {
+      if (e.target.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          logoURL = ev.target.result;
+          const preview = document.getElementById('logoPreview');
+          if (preview) {
+            preview.src = logoURL;
+            preview.style.display = 'block';
+          }
+          mostrarNotificacionExito('Logo cargado');
+        };
+        reader.readAsDataURL(e.target.files[0]);
+      }
+    });
+  }
+  
+  window.addEventListener('click', function(event) {
+    const modalEmpresas = document.getElementById('modalEmpresas');
+    const modalConductores = document.getElementById('modalConductores');
+    
+    if (event.target === modalEmpresas) {
+      sistemaDatos.cerrarModalEmpresas();
+    }
+    if (event.target === modalConductores) {
+      sistemaDatos.cerrarModalConductores();
     }
   });
+  
+  setTimeout(verificarServidor, 2000);
 });
 </script>
 
