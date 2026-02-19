@@ -501,25 +501,39 @@ async function guardarEnGoogleSheets(datosRemito) {
 
 async function guardarEnGoogleDrive(pdfBlob, nombreArchivo) {
   try {
+    console.log('Tipo de pdfBlob:', typeof pdfBlob);
+    console.log('Es Blob:', pdfBlob instanceof Blob);
+    console.log('Tamaño:', pdfBlob.size);
+    
     const reader = new FileReader();
     return new Promise((resolve, reject) => {
       reader.onload = async function(event) {
         try {
+          console.log('Resultado FileReader:', event.target.result.substring(0, 100));
           const base64 = event.target.result.split(',')[1];
+          console.log('Base64 length:', base64.length);
+          console.log('Base64 preview:', base64.substring(0, 50));
+          
+          const body = {
+            action: 'guardarEnDrive',
+            archivo: base64,
+            nombre: nombreArchivo,
+            mimeType: 'application/pdf'
+          };
+          console.log('Body a enviar:', JSON.stringify(body).substring(0, 200));
+          
           const response = await fetch(GAS_BASE_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({
-              action: 'guardarEnDrive',
-              archivo: base64,
-              nombre: nombreArchivo,
-              mimeType: 'application/pdf'
-            }),
+            body: JSON.stringify(body),
             redirect: 'follow'
           });
+          console.log('Response status:', response.status);
           const result = await response.json();
+          console.log('Resultado:', result);
           resolve(result);
         } catch (error) {
+          console.error('Error en fetch:', error);
           reject({ success: false, message: error.message });
         }
       };
@@ -527,10 +541,10 @@ async function guardarEnGoogleDrive(pdfBlob, nombreArchivo) {
       reader.readAsDataURL(pdfBlob);
     });
   } catch (error) {
+    console.error('Error general:', error);
     return { success: false, message: error.message };
   }
 }
-
 async function obtenerProximoNumero(usuario) {
   try {
     const url = `${GAS_BASE_URL}?action=getNextRemito&usuario=${encodeURIComponent(usuario)}`;
