@@ -164,12 +164,19 @@
     <div class="grid">
       <div class="full section-title">CONFIGURACIÓN DE USUARIO</div>
       <div class="full">
-        <label>Usuario/Oficina (opcional - se guarda automáticamente)</label>
-        <input id="usuarioConfig" placeholder="Ej: OFICINA_CENTRAL, SUCURSAL_GODOY_CRUZ, USUARIO_JUAN">
+        <label>Usuario/Operador (seleccionar para numeración independiente)</label>
+        <select id="usuarioConfig" onchange="cambiarUsuario()" style="padding:14px; font-size:16px; font-weight:bold; background:#e3f2fd;">
+          <option value="">-- Seleccionar Usuario --</option>
+          <option value="MESCUDERO">MESCUDERO</option>
+          <option value="SMUÑOZ">SMUÑOZ</option>
+          <option value="JPALOMO">JPALOMO</option>
+          <option value="TEST">TEST</option>
+        </select>
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-          <button onclick="guardarConfigUsuario()" style="padding:10px 20px; font-size:14px; margin:0; flex:1; min-width:120px;">Guardar Usuario</button>
+          <button onclick="mostrarInfoNumeracion()" style="padding:10px 20px; font-size:14px; margin:0; flex:1; min-width:120px; background:#2196f3;">Ver Numeración Actual</button>
           <button onclick="limpiarConfigUsuario()" style="background:#f44336; padding:10px 20px; font-size:14px; margin:0; flex:1; min-width:120px;">Borrar Usuario</button>
         </div>
+        <div class="info-box" id="infoNumeracionUsuario" style="margin-top:10px; display:none;"></div>
       </div>
 
       <div class="numero-control">
@@ -670,14 +677,17 @@ class SistemaDatos {
   
   mostrarUsuarioActivo() {
     const display = document.getElementById('usuarioActivoDisplay');
-    const input = document.getElementById('usuarioConfig');
+    const select = document.getElementById('usuarioConfig');
     if (this.datos.usuario) {
       display.textContent = `USUARIO ACTIVO: ${this.datos.usuario}`;
       display.style.display = 'block';
-      if (input) input.value = this.datos.usuario;
+      if (select) select.value = this.datos.usuario;
+      mostrarInfoNumeracion();
     } else {
       display.style.display = 'none';
-      if (input) input.value = '';
+      if (select) select.value = '';
+      const infoBox = document.getElementById('infoNumeracionUsuario');
+      if (infoBox) infoBox.style.display = 'none';
     }
   }
   
@@ -924,8 +934,50 @@ function agregarCampoDomicilio() { domicilioEnEdicion.push(''); renderizarDomici
 function eliminarDomicilio(index) { if (domicilioEnEdicion.length > 1) { domicilioEnEdicion.splice(index, 1); renderizarDomiciliosEdicion(); } else { domicilioEnEdicion[index] = ''; renderizarDomiciliosEdicion(); } }
 function moverDomicilio(index, direccion) { const newIndex = index + direccion; if (newIndex >= 0 && newIndex < domicilioEnEdicion.length) { [domicilioEnEdicion[index], domicilioEnEdicion[newIndex]] = [domicilioEnEdicion[newIndex], domicilioEnEdicion[index]]; renderizarDomiciliosEdicion(); } }
 
-function guardarConfigUsuario() { const input = document.getElementById('usuarioConfig'); if (!input?.value.trim()) { alert('⚠️ Ingrese un nombre de usuario/oficina válido'); return; } sistemaDatos.setUsuario(input.value.trim()); mostrarNotificacionExito(`✅ Usuario guardado: ${input.value.trim()}`); cargarNumeroRemito(); }
-function limpiarConfigUsuario() { if (!confirm('¿Borrar configuración de usuario?')) return; sistemaDatos.limpiarUsuario(); mostrarNotificacionExito('Usuario eliminado'); cargarNumeroRemito(); }
+function cambiarUsuario() {
+  const select = document.getElementById('usuarioConfig');
+  const usuario = select?.value;
+  if (!usuario) {
+    mostrarNotificacionExito('Seleccione un usuario para continuar');
+    return;
+  }
+  sistemaDatos.setUsuario(usuario);
+  mostrarNotificacionExito(`✅ Usuario seleccionado: ${usuario}`);
+  cargarNumeroRemito();
+  mostrarInfoNumeracion();
+}
+
+function mostrarInfoNumeracion() {
+  const usuario = sistemaDatos?.datos?.usuario;
+  if (!usuario) {
+    document.getElementById('infoNumeracionUsuario').style.display = 'none';
+    return;
+  }
+  
+  const año = new Date().getFullYear();
+  const prefijoUsuario = usuario.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 6);
+  const storageKey = `ultimoRemito_${año}_${prefijoUsuario}`;
+  const ultimoNumero = localStorage.getItem(storageKey) || '0';
+  const siguienteNumero = parseInt(ultimoNumero) + 1;
+  
+  const infoBox = document.getElementById('infoNumeracionUsuario');
+  infoBox.innerHTML = `
+    <strong>📊 Numeración de ${usuario}</strong><br>
+    Último remito: <strong>${ultimoNumero}</strong> | 
+    Siguiente: <strong>${siguienteNumero}</strong><br>
+    <small style="color:#666;">Cada usuario tiene su propia numeración independiente</small>
+  `;
+  infoBox.style.display = 'block';
+}
+
+function limpiarConfigUsuario() {
+  if (!confirm('¿Borrar usuario seleccionado?')) return;
+  document.getElementById('usuarioConfig').value = '';
+  sistemaDatos.limpiarUsuario();
+  document.getElementById('infoNumeracionUsuario').style.display = 'none';
+  mostrarNotificacionExito('Usuario eliminado');
+  cargarNumeroRemito();
+}
 function mostrarModalEmpresas() { sistemaDatos.mostrarModalEmpresas(); }
 function cerrarModalEmpresas() { sistemaDatos.cerrarModalEmpresas(); }
 function mostrarModalConductores() { sistemaDatos.mostrarModalConductores(); }
