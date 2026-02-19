@@ -143,7 +143,10 @@
         <div style="margin-top:15px;">
           <button onclick="nuevoRemito()">➕ NUEVO REMITO</button>
           <button onclick="backupNumeracion()">GUARDAR RESPALDO</button>
-          <button onclick="reiniciarNumeracion()" style="background:#ff9800;">REINICIAR NUMERACIÓN</button>
+          <div style="display:inline-flex; gap:5px; align-items:center; margin-left:10px;">
+            <button onclick="reiniciarNumeracion()" style="background:#ff9800;">REINICIAR A:</button>
+            <input type="number" id="reiniciarA" placeholder="0" style="width:80px; padding:8px; font-size:14px;">
+          </div>
           <input type="file" id="restoreFile" accept=".json" style="display:none;" onchange="restaurarNumeracion(event)">
           <button onclick="mostrarModalEmpresas()" style="background:#9c27b0; margin-left:10px;">GESTIONAR EMPRESAS</button>
           <button onclick="mostrarModalConductores()" class="btn-gestionar-datos">GESTIONAR CONDUCTORES/VEHÍCULOS</button>
@@ -954,14 +957,17 @@ function guardarNumeracion(año, numero, usuario = 'DEFAULT') {
 }
 
 function reiniciarNumeracion() {
-  if (!confirm('⚠️ ¿Reiniciar numeración?')) return;
+  const inputNumero = document.getElementById('reiniciarA')?.value;
+  const numeroReinicio = inputNumero ? parseInt(inputNumero, 10) : 0;
+  
+  if (!confirm(`⚠️ ¿Reiniciar numeración a ${numeroReinicio}?`)) return;
   
   const año = new Date().getFullYear();
   const usuario = sistemaDatos?.datos?.usuario || 'DEFAULT';
   const prefijoUsuario = usuario.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 6);
   
-  localStorage.setItem(`ultimoRemito_${año}_${prefijoUsuario}`, "0");
-  mostrarNotificacionExito(`Numeración reiniciada`);
+  localStorage.setItem(`ultimoRemito_${año}_${prefijoUsuario}`, numeroReinicio.toString());
+  mostrarNotificacionExito(`Numeración reiniciada a ${numeroReinicio}`);
   setTimeout(() => cargarNumeroRemito(), 500);
 }
 
