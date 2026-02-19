@@ -153,9 +153,12 @@
       <div><label>Fecha</label><input type="date" id="fecha" required></div>
 
       <div class="full">
-        <label>Logo (opcional - carga manual recomendada)</label>
-        <input type="file" id="logoInput" accept="image/*">
-        <img id="logoPreview" src="" alt="Logo" style="display:none; max-width:200px;" crossorigin="anonymous">
+        <label>Logo (se carga automáticamente si hay uno guardado)</label>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input type="file" id="logoInput" accept="image/*" style="flex:1;">
+          <button onclick="borrarLogo()" style="padding:10px 15px; font-size:14px; background:#f44336; margin:0;">Borrar Logo</button>
+        </div>
+        <img id="logoPreview" src="" alt="Logo" style="display:none; max-width:200px; margin-top:10px;" crossorigin="anonymous">
       </div>
 
       <div class="full section-title">DATOS DE ORIGEN Y DESTINO</div>
@@ -492,6 +495,38 @@ async function guardarEnGoogleSheets(datosRemito) {
     return { success: true, message: result };
   } catch (error) {
     console.error('Error guardando en Google Sheets:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+async function guardarEnGoogleDrive(pdfBlob, nombreArchivo) {
+  try {
+    const reader = new FileReader();
+    return new Promise((resolve, reject) => {
+      reader.onload = async function(event) {
+        try {
+          const base64 = event.target.result.split(',')[1];
+          const response = await fetch(GAS_BASE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action: 'guardarEnDrive',
+              archivo: base64,
+              nombre: nombreArchivo,
+              mimeType: 'application/pdf'
+            }),
+            redirect: 'follow'
+          });
+          const result = await response.json();
+          resolve(result);
+        } catch (error) {
+          reject({ success: false, message: error.message });
+        }
+      };
+      reader.onerror = () => reject({ success: false, message: 'Error leyendo PDF' });
+      reader.readAsDataURL(pdfBlob);
+    });
+  } catch (error) {
     return { success: false, message: error.message };
   }
 }
@@ -1429,7 +1464,12 @@ async function validarYDescargarPDF() {
     
     const numRemito = document.getElementById('numRemito')?.value || 'remito';
     const nombre = numRemito.replace(/[^a-zA-Z0-9-]/g, '_');
-    pdf.save(`${nombre}.pdf`);
+    const nombreArchivo = `${nombre}.pdf`;
+    
+    const pdfBlob = pdf.output('blob');
+    const resultadoDrive = await guardarEnGoogleDrive(pdfBlob, nombreArchivo);
+    
+    pdf.save(nombreArchivo);
     
     const datosRemito = {
       numero: numRemito,
@@ -1445,14 +1485,19 @@ async function validarYDescargarPDF() {
       vehiculo: document.getElementById('vehiculo')?.value,
       acoplado: document.getElementById('acoplado')?.value,
       detalle: detalleEl.value,
-      usuario: sistemaDatos?.datos?.usuario || 'DEFAULT'
+      usuario: sistemaDatos?.datos?.usuario || 'DEFAULT',
+      driveUrl: resultadoDrive.success ? resultadoDrive.message : ''
     };
     
     const resultadoGS = await guardarEnGoogleSheets(datosRemito);
-    if (resultadoGS.success) {
-      mostrarNotificacionExito(`✅ PDF generado (${copias.length} copias, ${totalPaginasPDF} páginas total) y guardado en Google Sheets`);
+    if (resultadoDrive.success && resultadoGS.success) {
+      mostrarNotificacionExito(`✅ PDF generado y guardado en Drive + Google Sheets`);
+    } else if (resultadoDrive.success) {
+      mostrarNotificacionExito(`✅ PDF guardado en Drive (Sheets: ${resultadoGS.message})`);
+    } else if (resultadoGS.success) {
+      mostrarNotificacionExito(`✅ PDF generado y guardado en Google Sheets (Drive: ${resultadoDrive.message})`);
     } else {
-      mostrarNotificacionExito(`⚠️ PDF generado (${copias.length} copias, ${totalPaginasPDF} páginas) - Error al guardar en Sheets: ${resultadoGS.message}`);
+      mostrarNotificacionExito(`⚠️ PDF generado locally (Error Drive: ${resultadoDrive.message}, Sheets: ${resultadoGS.message})`);
     }
     
     const año = new Date().getFullYear();
@@ -1532,17 +1577,41 @@ document.addEventListener('DOMContentLoaded', function() {
         const reader = new FileReader();
         reader.onload = function(ev) {
           logoURL = ev.target.result;
+          localStorage.setItem('logo_remito', logoURL);
           const preview = document.getElementById('logoPreview');
           if (preview) {
             preview.src = logoURL;
             preview.style.display = 'block';
           }
-          mostrarNotificacionExito('Logo cargado');
+          mostrarNotificacionExito('Logo cargado y guardado');
         };
         reader.readAsDataURL(e.target.files[0]);
       }
     });
+    
+    const logoGuardado = localStorage.getItem('logo_remito');
+    if (logoGuardado) {
+      logoURL = logoGuardado;
+      const preview = document.getElementById('logoPreview');
+      if (preview) {
+        preview.src = logoURL;
+        preview.style.display = 'block';
+      }
+    }
   }
+  
+  window.borrarLogo = function() {
+    localStorage.removeItem('logo_remito');
+    logoURL = '';
+    const preview = document.getElementById('logoPreview');
+    if (preview) {
+      preview.src = '';
+      preview.style.display = 'none';
+    }
+    const logoInput = document.getElementById('logoInput');
+    if (logoInput) logoInput.value = '';
+    mostrarNotificacionExito('Logo borrado');
+  };
   
   window.addEventListener('click', function(event) {
     const modalEmpresas = document.getElementById('modalEmpresas');
