@@ -1466,9 +1466,14 @@ async function validarYDescargarPDF() {
     const nombre = numRemito.replace(/[^a-zA-Z0-9-]/g, '_');
     const nombreArchivo = `${nombre}.pdf`;
     
-    const pdfBlob = pdf.output('blob');
-    const resultadoDrive = await guardarEnGoogleDrive(pdfBlob, nombreArchivo);
-    
+   const pdfBlob = pdf.output('blob');
+console.log('PDF generado, tamaño:', pdfBlob.size);
+console.log('Nombre archivo:', nombreArchivo);
+console.log('GAS_URL:', GAS_BASE_URL);
+
+const resultadoDrive = await guardarEnGoogleDrive(pdfBlob, nombreArchivo);
+console.log('Resultado Drive:', resultadoDrive);
+
     pdf.save(nombreArchivo);
     
     const datosRemito = {
